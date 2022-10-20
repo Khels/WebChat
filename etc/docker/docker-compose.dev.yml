@@ -1,0 +1,50 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15.0-bullseye
+    container_name: webchat_db_dev
+    volumes:
+      - webchat_postgres_data:/var/lib/mysql
+    env_file:
+      - .env
+    expose:
+      - "5432"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: etc/docker/backend/Dockerfile.backend.dev
+    image: webchat_backend_dev
+    container_name: webchat_backend_dev
+    command: [ "uvicorn", "src.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000" ]
+    volumes:
+      - ./backend:/app  # allows hot-reloading
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: etc/docker/frontend/Dockerfile.frontend.dev
+    image: webchat_frontend_dev
+    container_name: webchat_frontend_dev
+    command: ["npm", "run", "dev"]
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  webchat_postgres_data:

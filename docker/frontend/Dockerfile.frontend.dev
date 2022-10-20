@@ -1,6 +1,0 @@
-FROM node:18.11.0-bullseye-slim
-
-WORKDIR /app
-
-# ENTRYPOINT [ "/bin/sh" ]
-CMD ["sleep","36000000"]
