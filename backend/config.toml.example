@@ -1,0 +1,6 @@
+[database]
+host = "webchat_db_dev"
+port = 5432
+user = "<user>"
+password = "<password>"
+name = "<name>"

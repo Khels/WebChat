@@ -5,7 +5,7 @@ services:
     image: postgres:15.0-bullseye
     container_name: webchat_db_dev
     volumes:
-      - webchat_postgres_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     env_file:
       - .env
     expose:
@@ -47,4 +47,4 @@ services:
       - backend
 
 volumes:
-  webchat_postgres_data:
+  postgres_data:

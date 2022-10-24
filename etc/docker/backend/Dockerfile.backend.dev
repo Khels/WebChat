@@ -11,7 +11,7 @@ RUN pip install pipenv && \
 # install python dependencies in /.venv
 COPY backend/Pipfile .
 COPY backend/Pipfile.lock .
-RUN PIPENV_VENV_IN_PROJECT=1 pipenv install
+RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --dev
 
 
 FROM builder
@@ -22,5 +22,5 @@ WORKDIR /app
 ENV PATH "/.venv/bin:$PATH"
 
 # create and switch to a new user
-RUN groupadd --system app && useradd --no-create-home --system -g app app
-USER app
+# RUN groupadd --system app && useradd --no-create-home --system -g app app
+# USER app
