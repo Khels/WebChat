@@ -9,7 +9,6 @@ fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 sqlalchemy = "*"
 alembic = "*"
-sqlmodel = "*"
 
 [dev-packages]
 flake8 = "*"

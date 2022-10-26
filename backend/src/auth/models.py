@@ -1,16 +1,15 @@
-from datetime import datetime
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
+from src.database import Base
 
-from sqlmodel import Field, SQLModel
 
-
-class User(SQLModel, table=True):
+class User(Base):
     __tablename__ = "user"
 
-    id: int = Field(primary_key=True)
-    username: str = Field(unique=True)
-    first_name: str = Field(default="")
-    last_name: str = Field(default="")
-    password: str
-    last_online: datetime = Field()
-    is_active: bool = Field(default=True)
-    is_admin: bool = Field(default=False)
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True, nullable=False)
+    first_name = Column(String, default="", nullable=False)
+    last_name = Column(String, default="", nullable=False)
+    password = Column(String, nullable=False)
+    last_online = Column(DateTime)
+    is_active = Column(Boolean, default=True, nullable=False)
+    is_admin = Column(Boolean, default=False, nullable=False)

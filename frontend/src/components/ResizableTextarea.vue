@@ -70,7 +70,7 @@ async function resize() {
       isScrollEnabled.value = false;
     }
   } else {
-    console.log(textarea.value.scrollHeight);
+    textarea.value.scrollHeight  // just leave it be
     height.value = `${textarea.value.scrollHeight}px`
   }
 }
