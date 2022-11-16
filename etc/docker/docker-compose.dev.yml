@@ -10,9 +10,17 @@ services:
       - .env
     expose:
       - "5432"
-    restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready" ]
+      test: [ "CMD", "pg_isready" ]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.0.5-bullseye
+    container_name: webchat_redis_dev
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 1s
       timeout: 5s
       retries: 10
@@ -23,13 +31,15 @@ services:
       dockerfile: etc/docker/backend/Dockerfile.backend.dev
     image: webchat_backend_dev
     container_name: webchat_backend_dev
-    command: [ "uvicorn", "src.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000" ]
+    command: [ "hypercorn", "src.main:app", "--reload", "--bind", "0.0.0.0:8000" ]
     volumes:
       - ./backend:/app  # for hot-reload
     ports:
       - "8000:8000"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   frontend:

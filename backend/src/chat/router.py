@@ -1,20 +1,44 @@
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
-from sqlmodel import select
-from src.database import AsyncSession, get_session
+import logging
+
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi.concurrency import run_until_first_complete
+from src.config import REDIS_URL
+
+from .service import Broadcast
+
+logger = logging.getLogger(__name__)
+
+broadcast = Broadcast(REDIS_URL)
+
+router = APIRouter(
+    prefix="/api/v1",
+    tags=['chat'],
+    on_startup=[broadcast.connect],
+    on_shutdown=[broadcast.disconnect],
+)
 
 
-router = APIRouter(tags=['chat'])
+async def message_receiver(websocket: WebSocket):
+    while True:
+        message = await websocket.receive()
+        websocket._raise_on_disconnect(message)
+        await broadcast.publish(channel="chatroom",
+                                message=message["text"])
 
 
-@router.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    pass
-    # await manager.connect(websocket)
-    # try:
-    #     while True:
-    #         data = await websocket.receive()
-    #         await manager.send_personal_message(f"You wrote: {data}", websocket)
-    #         await manager.broadcast(f"Client #{client_id} says: {data}")
-    # except WebSocketDisconnect:
-    #     manager.disconnect(websocket)
-    #     await manager.broadcast(f"Client #{client_id} left the chat")
+async def message_sender(websocket: WebSocket):
+    async with broadcast.subscribe(channel="chatroom") as subscriber:
+        async for event in subscriber:
+            await websocket.send_text(event.message)
+
+
+@router.websocket("/chat/", name="chat")
+async def chat(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        await run_until_first_complete(
+            (message_sender, {"websocket": websocket}),
+            (message_receiver, {"websocket": websocket}),
+        )
+    except WebSocketDisconnect:
+        logger.info(f"Websocket connection {websocket} closed")

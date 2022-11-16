@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed } from 'vue';
 
 const props = defineProps({
   ownMessage: {
@@ -18,16 +18,14 @@ const props = defineProps({
 const styleObject = computed(() => {
   return {
     float: props.ownMessage ? 'right' : 'left',
-    backgroundColor: props.backgroundColor,
+    backgroundColor: props.ownMessage ? '#70548b' : '#ffa13d'
   }
 })
 </script>
 
 <template>
   <div class="message p-3 my-1" :style="styleObject">
-    <div class="text-break">
-      {{ text }}
-    </div>
+    {{ text }}
   </div>
 </template>
 
@@ -36,5 +34,6 @@ const styleObject = computed(() => {
     color: white;
     border-radius: 1rem;
     width: 40vw;
+    white-space: break-spaces;
   }
 </style>

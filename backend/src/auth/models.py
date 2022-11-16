@@ -10,6 +10,6 @@ class User(Base):
     first_name = Column(String, default="", nullable=False)
     last_name = Column(String, default="", nullable=False)
     password = Column(String, nullable=False)
-    last_online = Column(DateTime)
+    last_online = Column(DateTime, default=None)
     is_active = Column(Boolean, default=True, nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)

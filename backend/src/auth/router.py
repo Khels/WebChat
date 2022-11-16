@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from src.database import AsyncSession, get_session
 from sqlalchemy import select
+from src.database import AsyncSession, get_session
+
 from .models import User
 from .schemas import UserCreate, UserRead
 
-router = APIRouter(tags=['auth'])
+router = APIRouter(prefix="/api/v1", tags=['auth'])
 
 
 @router.post("/users", response_model=UserRead)

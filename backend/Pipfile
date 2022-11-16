@@ -6,9 +6,12 @@ name = "pypi"
 [packages]
 toml = "*"
 fastapi = "*"
-uvicorn = {extras = ["standard"], version = "*"}
 sqlalchemy = "*"
+asyncpg = "*"
 alembic = "*"
+hypercorn = "*"
+redis = {extras = ["hiredis"], version = "*"}
+asyncio-redis = "*"
 
 [dev-packages]
 flake8 = "*"

@@ -4,3 +4,6 @@ port = 5432
 user = "<user>"
 password = "<password>"
 name = "<name>"
+
+[redis]
+url = "redis://redis:6379"

@@ -4,9 +4,10 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # install pipenv and compilation dependencies
-RUN pip install pipenv && \
+RUN pip install --upgrade pip && \
+    pip install pipenv && \
     apt-get update && \
-    apt-get install -y --no-install-recommends gcc
+    apt-get install -y --no-install-recommends gcc python3-dev
 
 # install python dependencies in /.venv
 COPY backend/Pipfile .
@@ -20,6 +21,9 @@ WORKDIR /app
 
 # use virtual env from builder stage
 ENV PATH "/.venv/bin:$PATH"
+
+# create a self signed certificate to serve over HTTPS
+# RUN openssl req -x509 -newkey rsa:4096 -keyout /key.pem -out /cert.pem -days 365 -nodes -subj /CN=www.mydom.com/O=CompanyName/C=US
 
 # create and switch to a new user
 # RUN groupadd --system app && useradd --no-create-home --system -g app app

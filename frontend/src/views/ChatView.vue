@@ -1,14 +1,26 @@
 <script setup>
-import { ref } from 'vue'
-import MessageItem from '../components/MessageItem.vue'
-import ResizableTextarea from '../components/ResizableTextarea.vue'
+import { ref } from 'vue';
+import MessageItem from '../components/MessageItem.vue';
+import ResizableTextarea from '../components/ResizableTextarea.vue';
 
-const message = ref("ksdg;lfamskld;fjbnlksfdjsadnbsdfnb;lsdf;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+const message = ref("")
 const messages = ref([])
+
+const clientId = Date.now()
+console.log(clientId);
+
+let ws = new WebSocket("ws://127.0.0.1:8000/api/v1/chat/")
+
+ws.onmessage = function(event) {
+  let data = JSON.parse(event.data)
+  console.log(data)
+  messages.value.push({text: data.message, own: data.client === clientId})
+}
 
 function sendMessage() {
   if (message.value) {
-    messages.value.push(message.value)
+    // messages.value.push(message.value)
+    ws.send(JSON.stringify({client: clientId, message: message.value}))
     message.value = ""
   }
 }
@@ -18,7 +30,7 @@ function sendMessage() {
   <div class="container-fluid vh-100">
     <div class="row" v-for="msg in messages" :key="msg">
       <div class="col">
-        <MessageItem :text="msg" :own-message="true"/>
+        <MessageItem :text="msg.text" :own-message="msg.own"/>
       </div>
     </div>
     <div class="row fixed-bottom p-4">
