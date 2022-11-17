@@ -12,6 +12,9 @@ alembic = "*"
 hypercorn = "*"
 redis = {extras = ["hiredis"], version = "*"}
 asyncio-redis = "*"
+python-multipart = "*"
+python-jose = {extras = ["cryptography"], version = "*"}
+passlib = {extras = ["bcrypt"], version = "*"}
 
 [dev-packages]
 flake8 = "*"

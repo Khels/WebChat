@@ -20,7 +20,7 @@ ws.onmessage = function(event) {
 function sendMessage() {
   if (message.value) {
     // messages.value.push(message.value)
-    ws.send(JSON.stringify({client: clientId, message: message.value}))
+    ws.send(JSON.stringify({ client: clientId, message: message.value }))
     message.value = ""
   }
 }
@@ -38,6 +38,7 @@ function sendMessage() {
         <ResizableTextarea
           placeholder="Напишите сообщение..."
           v-model="message"
+          @keydown.ctrl.enter.exact="sendMessage"
         ></ResizableTextarea>
       </div>
       <div class="col-sm-auto">

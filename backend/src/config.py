@@ -3,6 +3,12 @@ import toml
 with open("config.toml", "r") as f:
     config = toml.load(f)
 
+DEBUG = config["common"]["debug"]
+
+SECRET_KEY = config["auth"]["secret_key"]
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
 # database
 DATABASE_HOST = config["database"]["host"]
 DATABASE_PORT = config["database"]["port"]
