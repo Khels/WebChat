@@ -12,10 +12,13 @@ class Chat(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     image_url = Column(String, nullable=True)
-    participants = relationship("user",
-                                secondary="chat_participant",
-                                backref="chats")
     created_at = Column(DateTime, default=datetime.timestamp)
+
+    participants = relationship(
+        "User",
+        secondary="chat_participant",
+        backref="chats"
+    )
 
 
 class ChatParticipant(Base):
@@ -32,7 +35,8 @@ class Message(Base):
     id = Column(Integer, primary_key=True)
     sender_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     chat_id = Column(Integer, ForeignKey("chat.id"), nullable=False)
-    chat = relationship("chat", backref="messages")
     content = Column(Text)
     is_edited = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.timestamp)
+
+    chat = relationship("Chat", backref="messages")

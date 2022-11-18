@@ -5,9 +5,11 @@ with open("config.toml", "r") as f:
 
 DEBUG = config["common"]["debug"]
 
+# auth
 SECRET_KEY = config["auth"]["secret_key"]
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 # database
 DATABASE_HOST = config["database"]["host"]

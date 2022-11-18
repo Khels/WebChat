@@ -1,20 +1,21 @@
+import secrets
+import string
 from datetime import datetime, timedelta
 
 from fastapi import HTTPException
-from jose import jwt
 from sqlalchemy import select
-from src.config import ALGORITHM, SECRET_KEY
+from src.config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 from src.database import AsyncSession
 
-from .models import User
+from .models import AccessToken, RefreshToken, User
 from .service import pwd_context
 
 
-def verify_password(plain_password, hashed_password):
+def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def get_password_hash(password):
+def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
@@ -41,17 +42,61 @@ async def authenticate_user(
     return user
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+def generate_token(length: int = 128) -> str:
+    symbols = string.ascii_letters + string.digits + "#$%&()+-/:;<=>?@[]_{|}~"
+    token = ''.join(secrets.choice(symbols) for i in range(length))
+    return token
 
 
-# TODO
-def create_refresh_token():
-    pass
+async def create_token(
+    session: AsyncSession,
+    token_model: type[AccessToken] | type[RefreshToken],
+    user: User,
+    expires: timedelta,
+    scopes: str | None = None
+) -> AccessToken | RefreshToken:
+    token = generate_token()
+    expires = datetime.utcnow() + expires
+    scopes = scopes if scopes else ""
+
+    new_token = token_model(
+        token=token,
+        user=user,
+        expires=expires,
+        scopes=scopes
+    )
+
+    session.add(new_token)
+
+    await session.commit()
+    await session.refresh(new_token)
+
+    return new_token
+
+
+async def create_access_token(
+    session: AsyncSession,
+    user: User,
+    scopes: str | None = None
+) -> AccessToken:
+    return await create_token(
+        session=session,
+        token_model=AccessToken,
+        user=user,
+        expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        scopes=scopes
+    )
+
+
+async def create_refresh_token(
+    session: AsyncSession,
+    user: User,
+    scopes: str | None = None
+) -> RefreshToken:
+    return await create_token(
+        session=session,
+        token_model=RefreshToken,
+        user=user,
+        expires=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        scopes=scopes
+    )

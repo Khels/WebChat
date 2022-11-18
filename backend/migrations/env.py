@@ -1,12 +1,12 @@
 import asyncio
 from logging.config import fileConfig
 
+import src.auth.models  # noqa: F401
+import src.chat.models  # noqa: F401
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine
-from src.auth.models import User  # noqa: F401
-from src.chat.models import Chat, ChatParticipant, Message  # noqa: F401
 from src.config import DATABASE_URL
 from src.database import Base
 
