@@ -4,9 +4,11 @@ from datetime import datetime, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import delete, select
+from sqlalchemy.orm import joinedload
 from src.config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 from src.database import AsyncSession
 
+from .exceptions import InvalidTokenHTTPException, TokenExpiredHTTPException
 from .models import AccessToken, RefreshToken, User
 from .service import pwd_context
 
@@ -52,11 +54,12 @@ async def create_token(
     session: AsyncSession,
     token_model: type[AccessToken] | type[RefreshToken],
     user: User,
-    expires: timedelta,
+    expires: datetime | timedelta,
     scopes: str | None = None
 ) -> AccessToken | RefreshToken:
     token = generate_token()
-    expires = datetime.utcnow() + expires
+    if isinstance(expires, timedelta):
+        expires = datetime.utcnow() + expires
     scopes = scopes if scopes else ""
 
     new_token = token_model(
@@ -91,15 +94,37 @@ async def create_access_token(
 async def create_refresh_token(
     session: AsyncSession,
     user: User,
+    expires: datetime | None = None,
     scopes: str | None = None
 ) -> RefreshToken:
     return await create_token(
         session=session,
         token_model=RefreshToken,
         user=user,
-        expires=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        expires=expires if expires else timedelta(
+            days=REFRESH_TOKEN_EXPIRE_DAYS),
         scopes=scopes
     )
+
+
+async def get_token(
+    token: str,
+    token_model: type[AccessToken] | type[RefreshToken],
+    session: AsyncSession
+) -> AccessToken | RefreshToken:
+    query = select(token_model).where(token_model.token == token).options(
+        joinedload(token_model.user, innerjoin=True)
+    )
+    result = await session.execute(query)
+    access_token: token_model = result.scalar()
+
+    if access_token is None:
+        raise InvalidTokenHTTPException()
+
+    if access_token.expired():
+        raise TokenExpiredHTTPException()
+
+    return access_token
 
 
 async def delete_user_tokens(session: AsyncSession, user: User) -> None:

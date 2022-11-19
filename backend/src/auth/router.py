@@ -10,7 +10,7 @@ from .schemas import TokenResponse, UserCreate, UserRead
 from .service import oauth2_scheme
 from .utils import (authenticate_user, create_access_token,
                     create_refresh_token, delete_user_tokens,
-                    get_password_hash, get_user)
+                    get_password_hash, get_token, get_user)
 
 router = APIRouter(prefix="/api/v1", tags=['auth'])
 
@@ -119,19 +119,46 @@ async def get_tokens(session: AsyncSession = Depends(get_db_session)):
     }
 
 
-@router.post("/token/refresh", response_model=UserRead)
+@router.post(
+    "/token/refresh",
+    response_model=TokenResponse,
+    responses={
+        401: {
+            "description": "Refresh token either expired or doesn't exist",
+            "model": ClientErrorResponse,
+        }
+    })
 async def refresh_token(
     token: str = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_db_session)
 ):
-    pass
+    refresh_token = await get_token(
+        token=token, token_model=RefreshToken, session=session)
+
+    user = refresh_token.user
+    expires = refresh_token.expires
+    scopes = refresh_token.scopes
+
+    # remove old access and refresh tokens
+    await delete_user_tokens(session=session, user=user)
+
+    new_access_token = await create_access_token(
+        session=session, user=user, scopes=scopes)
+    # create a new refresh token with the same expiration date
+    new_refresh_token = await create_refresh_token(
+        session=session, user=user, expires=expires, scopes=scopes)
+
+    return {
+        "access_token": new_access_token.token,
+        "refresh_token": new_refresh_token.token
+    }
 
 
 @router.post(
     "/token/revoke",
     responses={
         401: {
-            "description": "Token either expired or doesn't exists",
+            "description": "Access token either expired or doesn't exist",
             "model": ClientErrorResponse,
         }
     }
