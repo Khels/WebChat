@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from src.database import AsyncSession, get_db_session
 from src.schemas import ClientErrorResponse
 
 from .dependencies import get_current_active_user
-from .models import User
-from .schemas import (AccessToken, LoginResponse, RefreshToken, UserCreate,
-                      UserRead)
+from .models import AccessToken, RefreshToken, User
+from .schemas import TokenResponse, UserCreate, UserRead
+from .service import oauth2_scheme
 from .utils import (authenticate_user, create_access_token,
-                    create_refresh_token, get_password_hash, get_user)
+                    create_refresh_token, delete_user_tokens,
+                    get_password_hash, get_user)
 
 router = APIRouter(prefix="/api/v1", tags=['auth'])
 
@@ -55,7 +56,7 @@ async def register(
     user.password = get_password_hash(user.password)
     del user.password_confirm
 
-    # non-model fields
+    # non-schema fields
     user_dict = user.dict()
     user_dict["is_active"] = True
 
@@ -70,8 +71,8 @@ async def register(
 
 
 @router.post(
-    "/login",
-    response_model=LoginResponse,
+    "/token",
+    response_model=TokenResponse,
     responses={
         401: {
             "description": "Incorrect username or password",
@@ -79,7 +80,7 @@ async def register(
         }
     }
 )
-async def login(
+async def token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_db_session)
 ):
@@ -92,83 +93,55 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # TODO: make sure user doesn't spam system with login thus creating lots of tokens
+    # remove old access and refresh tokens
+    await delete_user_tokens(session=session, user=user)
+
     access_token = await create_access_token(
         session=session, user=user, scopes=form_data.scopes)
     refresh_token = await create_refresh_token(
         session=session, user=user, scopes=form_data.scopes)
 
-    print(access_token, access_token.token, access_token.expires, access_token.scopes)
-    print(refresh_token, refresh_token.token, refresh_token.expires, refresh_token.scopes)
-
     return {
-        "access_token": access_token,
-        "refresh_token": refresh_token
+        "access_token": access_token.token,
+        "refresh_token": refresh_token.token
     }
 
 
-@router.post("/refresh", response_model=UserRead)
+@router.get("/tokens")
+async def get_tokens(session: AsyncSession = Depends(get_db_session)):
+    result = await session.execute(select(AccessToken))
+    access_tokens = len(list(result.scalars()))
+    result = await session.execute(select(RefreshToken))
+    refresh_tokens = len(list(result.scalars()))
+    return {
+        "access_tokens": access_tokens,
+        "refresh_tokens": refresh_tokens
+    }
+
+
+@router.post("/token/refresh", response_model=UserRead)
 async def refresh_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    token: str = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_db_session)
 ):
     pass
 
 
-@router.post("/token/revoke")
+@router.post(
+    "/token/revoke",
+    responses={
+        401: {
+            "description": "Token either expired or doesn't exists",
+            "model": ClientErrorResponse,
+        }
+    }
+)
 async def revoke_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session)
 ):
-    pass
-
-
-# @router.get('/refresh')
-# def refresh_token(response: Response, request: Request, Authorize: AuthJWT = Depends(), db: Session = Depends(get_db)):
-#     try:
-#         Authorize.jwt_refresh_token_required()
-
-#         user_id = Authorize.get_jwt_subject()
-#         if not user_id:
-#             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-#                                 detail='Could not refresh access token')
-#         user = db.query(models.User).filter(models.User.id == user_id).first()
-#         if not user:
-#             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-#                                 detail='The user belonging to this token no logger exist')
-#         access_token = Authorize.create_access_token(
-#             subject=str(user.id), expires_time=timedelta(minutes=ACCESS_TOKEN_EXPIRES_IN))
-#     except Exception as e:
-#         error = e.__class__.__name__
-#         if error == 'MissingTokenError':
-#             raise HTTPException(
-#                 status_code=status.HTTP_400_BAD_REQUEST, detail='Please provide refresh token')
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST, detail=error)
-
-#     response.set_cookie('access_token', access_token, ACCESS_TOKEN_EXPIRES_IN * 60,
-#                         ACCESS_TOKEN_EXPIRES_IN * 60, '/', None, False, True, 'lax')
-#     response.set_cookie('logged_in', 'True', ACCESS_TOKEN_EXPIRES_IN * 60,
-#                         ACCESS_TOKEN_EXPIRES_IN * 60, '/', None, False, False, 'lax')
-#     return {'access_token': access_token}
-
-
-@router.post("/users", response_model=UserRead)
-async def create_user(
-    user: UserCreate,
-    session: AsyncSession = Depends(get_db_session)
-):
-    data = user.dict()
-    hashed_password = get_password_hash(data["password"])
-    data["password"] = hashed_password
-    user = User(**data)
-
-    session.add(user)
-
-    await session.commit()
-    await session.refresh(user)
-
-    return user
+    await delete_user_tokens(session=session, user=current_user)
+    return Response()
 
 
 @router.get("/users/me", response_model=UserRead)

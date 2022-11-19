@@ -9,7 +9,7 @@ DEBUG = config["common"]["debug"]
 SECRET_KEY = config["auth"]["secret_key"]
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-REFRESH_TOKEN_EXPIRE_DAYS = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 30 * 6
 
 # database
 DATABASE_HOST = config["database"]["host"]

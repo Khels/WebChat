@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
                         Text)
 from sqlalchemy.orm import declarative_mixin, declared_attr, relationship
@@ -20,15 +22,17 @@ class User(Base):
         "AccessToken",
         back_populates="user",
         uselist=False,
-        cascade="all, delete",
-        passive_deletes=True
+        cascade="delete, delete-orphan",
+        passive_deletes=True,
+        single_parent=True
     )
     refresh_token = relationship(
         "RefreshToken",
         back_populates="user",
         uselist=False,
-        cascade="all, delete",
-        passive_deletes=True
+        cascade="delete, delete-orphan",
+        passive_deletes=True,
+        single_parent=True
     )
 
 
@@ -44,8 +48,12 @@ class TokenMixin:
         return Column(
             Integer,
             ForeignKey("user.id", ondelete="CASCADE"),
-            nullable=False
+            nullable=False,
+            unique=True
         )
+
+    def expired(self) -> bool:
+        return self.expires <= datetime.utcnow()
 
 
 class AccessToken(TokenMixin, Base):

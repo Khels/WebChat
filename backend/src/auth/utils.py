@@ -3,7 +3,7 @@ import string
 from datetime import datetime, timedelta
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from src.config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 from src.database import AsyncSession
 
@@ -20,8 +20,8 @@ def get_password_hash(password: str) -> str:
 
 
 async def get_user(session: AsyncSession, username: str) -> User:
-    result = await session.execute(
-        select(User).where(User.username.ilike(username)))
+    query = select(User).where(User.username.ilike(username))
+    result = await session.execute(query)
     user = result.scalar()
 
     if user is None:
@@ -43,8 +43,8 @@ async def authenticate_user(
 
 
 def generate_token(length: int = 128) -> str:
-    symbols = string.ascii_letters + string.digits + "#$%&()+-/:;<=>?@[]_{|}~"
-    token = ''.join(secrets.choice(symbols) for i in range(length))
+    symbols = string.ascii_letters + string.digits
+    token = "".join(secrets.choice(symbols) for i in range(length))
     return token
 
 
@@ -61,7 +61,7 @@ async def create_token(
 
     new_token = token_model(
         token=token,
-        user=user,
+        user_id=user.id,
         expires=expires,
         scopes=scopes
     )
@@ -100,3 +100,12 @@ async def create_refresh_token(
         expires=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
         scopes=scopes
     )
+
+
+async def delete_user_tokens(session: AsyncSession, user: User) -> None:
+    await session.execute(
+        delete(AccessToken).where(AccessToken.user_id == user.id))
+    await session.execute(
+        delete(RefreshToken).where(RefreshToken.user_id == user.id))
+
+    await session.commit()

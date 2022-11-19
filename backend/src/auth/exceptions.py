@@ -1,16 +1,16 @@
 from fastapi import HTTPException, status
 
 
-class CredentialsHTTPException(HTTPException):
+class InvalidTokenHTTPException(HTTPException):
     def __init__(self) -> None:
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+            detail="Provided token is invalid",
             headers={"WWW-Authenticate": "Bearer"}
         )
 
 
-class ExpiredSignatureHTTPException(HTTPException):
+class TokenExpiredHTTPException(HTTPException):
     def __init__(self) -> None:
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,

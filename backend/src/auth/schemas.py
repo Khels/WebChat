@@ -3,31 +3,9 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-class TokenBase(BaseModel):
-    token: str
-    expires: datetime
-    scopes: str
-
-    class Config:
-        orm_mode = True
-
-
-class AccessToken(TokenBase):
-    pass
-
-
-class RefreshToken(TokenBase):
-    pass
-
-
-class LoginResponse(BaseModel):
-    access_token: AccessToken
-    refresh_token: RefreshToken
-
-
-class Token(BaseModel):
+class TokenResponse(BaseModel):
     access_token: str
-    token_type: str
+    refresh_token: str
 
 
 class TokenData(BaseModel):

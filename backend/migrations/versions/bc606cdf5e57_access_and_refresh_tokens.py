@@ -1,8 +1,8 @@
-"""Access and Refresh token
+"""Access and Refresh tokens
 
-Revision ID: 28e046513fef
+Revision ID: bc606cdf5e57
 Revises: 130215b2f81a
-Create Date: 2022-11-18 18:27:58.579673
+Create Date: 2022-11-19 09:37:13.471321
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '28e046513fef'
+revision = 'bc606cdf5e57'
 down_revision = '130215b2f81a'
 branch_labels = None
 depends_on = None
@@ -25,7 +25,8 @@ def upgrade() -> None:
     sa.Column('scopes', sa.Text(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id')
     )
     op.create_index(op.f('ix_access_token_token'), 'access_token', ['token'], unique=False)
     op.create_table('refresh_token',
@@ -35,7 +36,8 @@ def upgrade() -> None:
     sa.Column('scopes', sa.Text(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id')
     )
     op.create_index(op.f('ix_refresh_token_token'), 'refresh_token', ['token'], unique=False)
     op.add_column('chat', sa.Column('image_url', sa.String(), nullable=True))
