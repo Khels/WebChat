@@ -9,8 +9,8 @@ from src.config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 from src.database import AsyncSession
 
 from .exceptions import InvalidTokenHTTPException, TokenExpiredHTTPException
-from .models import AccessToken, RefreshToken, User
-from .service import pwd_context
+from .models import Token, User
+from .service import TokenType, pwd_context
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -52,18 +52,19 @@ def generate_token(length: int = 128) -> str:
 
 async def create_token(
     session: AsyncSession,
-    token_model: type[AccessToken] | type[RefreshToken],
+    token_type: TokenType,
     user: User,
     expires: datetime | timedelta,
     scopes: str | None = None
-) -> AccessToken | RefreshToken:
+) -> Token:
     token = generate_token()
     if isinstance(expires, timedelta):
         expires = datetime.utcnow() + expires
     scopes = scopes if scopes else ""
 
-    new_token = token_model(
+    new_token = Token(
         token=token,
+        type=token_type,
         user_id=user.id,
         expires=expires,
         scopes=scopes
@@ -81,10 +82,10 @@ async def create_access_token(
     session: AsyncSession,
     user: User,
     scopes: str | None = None
-) -> AccessToken:
+) -> Token:
     return await create_token(
         session=session,
-        token_model=AccessToken,
+        token_type=TokenType.access,
         user=user,
         expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         scopes=scopes
@@ -96,10 +97,10 @@ async def create_refresh_token(
     user: User,
     expires: datetime | None = None,
     scopes: str | None = None
-) -> RefreshToken:
+) -> Token:
     return await create_token(
         session=session,
-        token_model=RefreshToken,
+        token_type=TokenType.refresh,
         user=user,
         expires=expires if expires else timedelta(
             days=REFRESH_TOKEN_EXPIRE_DAYS),
@@ -109,14 +110,16 @@ async def create_refresh_token(
 
 async def get_token(
     token: str,
-    token_model: type[AccessToken] | type[RefreshToken],
+    token_type: TokenType,
     session: AsyncSession
-) -> AccessToken | RefreshToken:
-    query = select(token_model).where(token_model.token == token).options(
-        joinedload(token_model.user, innerjoin=True)
+) -> Token:
+    query = select(Token).where(
+        Token.token == token, Token.type.in_([token_type])
+    ).options(
+        joinedload(Token.user, innerjoin=True)
     )
     result = await session.execute(query)
-    access_token: token_model = result.scalar()
+    access_token: Token = result.scalar()
 
     if access_token is None:
         raise InvalidTokenHTTPException()
@@ -129,8 +132,6 @@ async def get_token(
 
 async def delete_user_tokens(session: AsyncSession, user: User) -> None:
     await session.execute(
-        delete(AccessToken).where(AccessToken.user_id == user.id))
-    await session.execute(
-        delete(RefreshToken).where(RefreshToken.user_id == user.id))
+        delete(Token).where(Token.user_id == user.id))
 
     await session.commit()

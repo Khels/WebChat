@@ -1,9 +1,11 @@
 from datetime import datetime
 
-from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
-                        Text)
-from sqlalchemy.orm import declarative_mixin, declared_attr, relationship
+from sqlalchemy import (Boolean, Column, DateTime, Enum, ForeignKey, Integer,
+                        String, Text, UniqueConstraint)
+from sqlalchemy.orm import relationship
 from src.database import Base
+
+from .service import TokenType
 
 
 class User(Base):
@@ -18,51 +20,27 @@ class User(Base):
     is_active = Column(Boolean, default=False, nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)
 
-    access_token = relationship(
-        "AccessToken",
-        back_populates="user",
-        uselist=False,
-        cascade="delete, delete-orphan",
-        passive_deletes=True,
-        single_parent=True
-    )
-    refresh_token = relationship(
-        "RefreshToken",
-        back_populates="user",
-        uselist=False,
-        cascade="delete, delete-orphan",
-        passive_deletes=True,
-        single_parent=True
-    )
+    tokens = relationship("Token", back_populates="user")
 
 
-@declarative_mixin
-class TokenMixin:
+class Token(Base):
+    __tablename__ = "token"
+    __table_args__ = (
+        UniqueConstraint("type", "user_id", name="unique_token"),
+    )
+
     id = Column(Integer, primary_key=True)
     token = Column(String(length=256), index=True, nullable=False)
+    type = Column(Enum(TokenType, name="token_type"), nullable=False)
+    user_id = Column(
+        Integer,
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False
+    )
     expires = Column(DateTime, nullable=False)
     scopes = Column(Text, nullable=False)  # space-separated scopes
 
-    @declared_attr
-    def user_id(cls):
-        return Column(
-            Integer,
-            ForeignKey("user.id", ondelete="CASCADE"),
-            nullable=False,
-            unique=True
-        )
+    user = relationship("User", back_populates="tokens")
 
     def expired(self) -> bool:
         return self.expires <= datetime.utcnow()
-
-
-class AccessToken(TokenMixin, Base):
-    __tablename__ = "access_token"
-
-    user = relationship("User", back_populates="access_token")
-
-
-class RefreshToken(TokenMixin, Base):
-    __tablename__ = "refresh_token"
-
-    user = relationship("User", back_populates="refresh_token")
