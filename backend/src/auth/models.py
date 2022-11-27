@@ -30,7 +30,7 @@ class Token(Base):
     )
 
     id = Column(Integer, primary_key=True)
-    token = Column(String(length=256), index=True, nullable=False)
+    token = Column(String(length=128), index=True, nullable=False)
     type = Column(Enum(TokenType, name="token_type"), nullable=False)
     user_id = Column(
         Integer,

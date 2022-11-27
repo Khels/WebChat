@@ -2,7 +2,7 @@ import secrets
 import string
 from datetime import datetime, timedelta
 
-from fastapi import HTTPException
+from fastapi import HTTPException, WebSocket
 from sqlalchemy import delete, select
 from sqlalchemy.orm import joinedload
 from src.config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
@@ -44,7 +44,31 @@ async def authenticate_user(
     return user
 
 
-def generate_token(length: int = 128) -> str:
+async def authenticate_user_ws(
+    websocket: WebSocket, session: AsyncSession
+) -> User:
+    # wait for the first message with access token
+    data = await websocket.receive_json()
+    token = data.get("token", None)
+
+    if not token:
+        await websocket.close(code=4000, reason="No token provided")
+
+    access_token = await get_token(
+        token=token,
+        token_type=TokenType.access,
+        session=session,
+        websocket=websocket
+    )
+    user = access_token.user
+
+    if not user.is_active:
+        await websocket.close(code=4002, reason="Inactive user")
+
+    return user
+
+
+def generate_token(length: int = 64) -> str:
     symbols = string.ascii_letters + string.digits
     token = "".join(secrets.choice(symbols) for i in range(length))
     return token
@@ -111,7 +135,8 @@ async def create_refresh_token(
 async def get_token(
     token: str,
     token_type: TokenType,
-    session: AsyncSession
+    session: AsyncSession,
+    websocket: WebSocket | None = None
 ) -> Token:
     query = select(Token).where(
         Token.token == token, Token.type.in_([token_type])
@@ -122,10 +147,16 @@ async def get_token(
     access_token: Token = result.scalar()
 
     if access_token is None:
-        raise InvalidTokenHTTPException()
+        if websocket:
+            await websocket.close(code=4000, reason="Token is invalid")
+        else:
+            raise InvalidTokenHTTPException()
 
     if access_token.expired():
-        raise TokenExpiredHTTPException()
+        if websocket:
+            await websocket.close(code=4001, reason="Token has expired")
+        else:
+            raise TokenExpiredHTTPException()
 
     return access_token
 

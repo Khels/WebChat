@@ -11,14 +11,27 @@ console.log(clientId);
 
 let ws = new WebSocket("ws://127.0.0.1:8000/api/v1/chat/")
 
-ws.onmessage = function(event) {
+ws.onopen = (event) => {
+  sendMessage({ token: "Mgu65GgzM9D2Uarojoo4ohNkSqkFcU8AHVWeSvvz8IgUEAppzfwUyWWoIKGAnPAX" })
+}
+
+ws.onmessage = (event) => {
   let data = JSON.parse(event.data)
-  console.log(data)
+  console.log("onmessage", data)
   messages.value.push({text: data.message, own: data.client === clientId})
 }
 
-function sendMessage() {
-  if (message.value) {
+ws.onclose = (event) => {
+  console.log("ws closed: ", event);
+  if (event.code === 4000) {
+    // authentication failed
+  }
+}
+
+function sendMessage(msg = null) {
+  if (msg) {
+    ws.send(JSON.stringify(msg))
+  } else if (message.value) {
     // messages.value.push(message.value)
     ws.send(JSON.stringify({ client: clientId, message: message.value }))
     message.value = ""

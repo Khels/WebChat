@@ -48,7 +48,6 @@ services:
       dockerfile: etc/docker/frontend/Dockerfile.frontend.dev
     image: webchat_frontend_dev
     container_name: webchat_frontend_dev
-    command: ["npm", "run", "dev"]
     volumes:
       - ./frontend:/app  # for hot-reload
     ports:
