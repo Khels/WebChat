@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY etc/docker/frontend/entrypoint.frontend.dev.sh /etc
 
-RUN chmod +x /etc/entrypoint.frontend.dev.sh
+RUN chmod +x /etc/entrypoint.frontend.dev.sh && \
+    yarn global add @quasar/cli
 
 ENTRYPOINT ["/etc/entrypoint.frontend.dev.sh"]

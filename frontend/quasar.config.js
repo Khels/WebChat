@@ -10,6 +10,7 @@
 
 const { configure } = require('quasar/wrappers');
 const path = require('path');
+require('dotenv').config()
 
 module.exports = configure(function (/* ctx */) {
   return {

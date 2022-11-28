@@ -51,7 +51,7 @@ services:
     volumes:
       - ./frontend:/app  # for hot-reload
     ports:
-      - "3000:3000"
+      - "9000:9000"
     depends_on:
       - backend
 

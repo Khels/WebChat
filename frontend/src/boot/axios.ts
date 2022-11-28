@@ -13,7 +13,6 @@ declare module '@vue/runtime-core' {
 // good idea to move this instance creation inside of the
 // "export default () => {}" function below (which runs individually
 // for each client)
-console.log('axios: ', process.env.AXIOS_BASE_URL);
 
 const api = axios.create({ baseURL: process.env.AXIOS_BASE_URL });
 
