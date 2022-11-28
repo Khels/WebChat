@@ -1,23 +1,5 @@
-<script setup>
-import { RouterView } from 'vue-router';
-</script>
-
 <template>
-  <RouterView />
+  <router-view />
 </template>
 
-<style>
-  .invalid {
-    border-color: #dc3545 !important;
-    padding-right: calc(1.5em + .75rem) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e") !important;
-    background-repeat: no-repeat !important;
-    background-position: right calc(.375em + .1875rem) center !important;
-    background-size: calc(.75em + .375rem) calc(.75em + .375rem) !important;
-  }
-
-  .invalid:focus {
-    border-color: #dc3545 !important;
-    box-shadow: 0 0 0 .25rem rgba(220,53,69,.25) !important;
-  }
-</style>
+<script setup lang="ts"></script>

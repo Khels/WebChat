@@ -5,7 +5,7 @@ set -e
 cd /app
 
 echo "Installing the dependencies..."
-npm install --include=dev
+yarn
 
 echo "Running the development server..."
-exec npm run dev
+exec quasar dev
