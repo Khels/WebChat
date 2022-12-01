@@ -1,0 +1,118 @@
+import axios from 'axios';
+import { defineStore } from 'pinia';
+import { api } from 'src/boot/axios';
+import { useNotifications } from 'src/composables/notifications';
+import { TokenResponse, User } from 'src/models/auth';
+import { PATH } from 'src/router/constants';
+
+const notify = useNotifications();
+
+export const useUserStore = defineStore('user', {
+  state: () => ({
+    user: null as User | null,
+  }),
+  actions: {
+    async getCurrentUser() {
+      try {
+        const { data } = await api.get<User>('users/me');
+
+        this.user = data;
+      } catch (error) {
+        notify.error();
+      }
+    },
+    async signUp(username: string, password: string, passwordConfirm: string) {
+      try {
+        const { data } = await api.post<User>(
+          'register',
+          {
+            username: username,
+            password: password,
+            passwordConfirm: passwordConfirm
+          }
+        );
+
+        this.user = data;
+
+        // get access and refresh tokens
+        await this.signIn(username, password);
+
+        // redirect to main page
+        this.router.push({ name: PATH.INDEX });
+      } catch (error) {
+        let message;
+
+        if (axios.isAxiosError(error)) {
+          switch (error.response?.status) {
+            case 409:
+              message = 'Это имя уже занято';
+              break;
+            case 400:
+              message = 'Пароли не совпадают';
+            default:
+              break;
+          }
+        }
+
+        notify.error(message);
+      }
+    },
+    async signIn(username: string, password: string) {
+      const userData = new FormData();
+      userData.append('username', username);
+      userData.append('password', password);
+
+      try {
+        const { data } = await api.post<TokenResponse>(
+          'token',
+          userData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
+        api.defaults.headers.Authorization = `Bearer ${data.accessToken}`;
+
+        // save tokens to a local storage
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        
+        // redirect to main page
+        this.router.push({ name: PATH.INDEX });
+      } catch (error) {
+        let message;
+
+        if (axios.isAxiosError(error)) {
+          switch (error.response?.status) {
+            case 404:
+              message = 'Неверное имя пользователя';
+              break;
+            case 400:
+              message = 'Неверный пароль';
+            default:
+              break;
+          }
+        }
+
+        notify.error(message);
+      }
+    },
+    async signOut() {
+      try {
+        await api.post('revoke');
+
+        this.user = null;
+        delete api.defaults.headers.Authorization;
+
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+
+        // redirect to sign in page
+        this.router.push({ name: PATH.SIGN_IN });
+      } catch (error) {
+        notify.error();
+      }
+    },
+  },
+});

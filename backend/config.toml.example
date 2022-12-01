@@ -6,6 +6,9 @@ debug = true
 # openssl rand -hex 32
 secret_key = "<secret_key>"
 
+[cors]
+allowed_origins = [ "http://localhost", "http://localhost:9000" ]
+
 [database]
 host = "webchat_db_dev"
 port = 5432

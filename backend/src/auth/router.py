@@ -36,7 +36,7 @@ async def register(
 ):
     # check if user already exist
     try:
-        user = await get_user(session, user.username)
+        await get_user(session, user.username)
     except HTTPException:
         pass
     else:
@@ -74,7 +74,7 @@ async def register(
     "/token",
     response_model=TokenResponse,
     responses={
-        401: {
+        400: {
             "description": "Incorrect username or password",
             "model": ClientErrorResponse,
         }
@@ -88,7 +88,7 @@ async def token(
         session, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
