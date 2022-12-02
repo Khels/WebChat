@@ -48,7 +48,7 @@
 
 <script setup lang="ts">
 import { useUserStore } from 'src/stores/user-store';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 interface TokenMessage {
   token: string | null
@@ -61,6 +61,10 @@ interface Message {
 }
 
 const userStore = useUserStore();
+
+onMounted(async () => {
+  await userStore.getCurrentUser();
+})
 
 const message = ref('');
 const messages = ref<Message[]>([]);

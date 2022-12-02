@@ -86,7 +86,7 @@
                 <q-item clickable>
                   <q-item-section>Настройки</q-item-section>
                 </q-item>
-                <q-item clickable>
+                <q-item clickable @click="userStore.signOut">
                   <q-item-section>Выйти</q-item-section>
                 </q-item>
               </q-list>
@@ -173,6 +173,7 @@
 
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
+import { useUserStore } from 'src/stores/user-store';
 import { computed, ref } from 'vue';
 
 const conversations = [
@@ -211,6 +212,7 @@ const conversations = [
 ];
 
 const $q = useQuasar();
+const userStore = useUserStore();
 const chatMenuOpen = ref(false);
 const search = ref('');
 const message = ref('');

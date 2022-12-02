@@ -4,6 +4,7 @@ import { api } from 'src/boot/axios';
 import { useNotifications } from 'src/composables/notifications';
 import { TokenResponse, User } from 'src/models/auth';
 import { PATH } from 'src/router/constants';
+import { setAuthorizationHeader } from 'src/services/auth';
 
 const notify = useNotifications();
 
@@ -36,9 +37,6 @@ export const useUserStore = defineStore('user', {
 
         // get access and refresh tokens
         await this.signIn(username, password);
-
-        // redirect to main page
-        this.router.push({ name: PATH.INDEX });
       } catch (error) {
         let message;
 
@@ -72,12 +70,12 @@ export const useUserStore = defineStore('user', {
             }
           }
         );
-        api.defaults.headers.Authorization = `Bearer ${data.accessToken}`;
+        setAuthorizationHeader(data.accessToken);
 
         // save tokens to a local storage
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
-        
+
         // redirect to main page
         this.router.push({ name: PATH.INDEX });
       } catch (error) {
@@ -100,7 +98,7 @@ export const useUserStore = defineStore('user', {
     },
     async signOut() {
       try {
-        await api.post('revoke');
+        await api.post('token/revoke');
 
         this.user = null;
         delete api.defaults.headers.Authorization;
