@@ -48,7 +48,7 @@
 
 <script setup lang="ts">
 import { useUserStore } from 'src/stores/user-store';
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 
 interface TokenMessage {
   token: string | null
@@ -62,14 +62,10 @@ interface Message {
 
 const userStore = useUserStore();
 
-onMounted(async () => {
-  await userStore.getCurrentUser();
-})
-
 const message = ref('');
 const messages = ref<Message[]>([]);
 
-const ws = new WebSocket("ws://127.0.0.1:8000/api/v1/chat/");
+const ws = new WebSocket('ws://127.0.0.1:8000/api/v1/chat/');
 
 ws.onopen = (event) => {
   sendMessage({ token: localStorage.getItem('accessToken') });
@@ -77,12 +73,12 @@ ws.onopen = (event) => {
 
 ws.onmessage = (event) => {
   let data = JSON.parse(event.data);
-  console.log("onmessage", data);
+  console.log('onmessage', data);
   messages.value.push({text: data.message, own: data.client === clientId});
 }
 
 ws.onclose = (event) => {
-  console.log("ws closed: ", event);
+  console.log('ws closed: ', event);
   if (event.code === 4000) {
     // authentication failed
   }

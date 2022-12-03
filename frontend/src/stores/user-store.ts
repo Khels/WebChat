@@ -24,7 +24,7 @@ export const useUserStore = defineStore('user', {
     },
     async signUp(username: string, password: string, passwordConfirm: string) {
       try {
-        const { data } = await api.post<User>(
+        await api.post(
           'register',
           {
             username: username,
@@ -32,8 +32,6 @@ export const useUserStore = defineStore('user', {
             passwordConfirm: passwordConfirm
           }
         );
-
-        this.user = data;
 
         // get access and refresh tokens
         await this.signIn(username, password);
@@ -70,11 +68,15 @@ export const useUserStore = defineStore('user', {
             }
           }
         );
+
         setAuthorizationHeader(data.accessToken);
 
-        // save tokens to a local storage
+        // save tokens to localStorage
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
+
+        // get current user based on access token set above
+        await this.getCurrentUser();
 
         // redirect to main page
         this.router.push({ name: PATH.INDEX });

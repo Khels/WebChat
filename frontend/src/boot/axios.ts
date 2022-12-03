@@ -10,7 +10,8 @@ declare module '@vue/runtime-core' {
   }
 }
 
-// snake_case -> camelCase and backwards
+// snake_case <=> camelCase
+const client = applyCaseMiddleware(axios.create());
 const api = applyCaseMiddleware(axios.create({ baseURL: process.env.AXIOS_BASE_URL }));
 
 setAuthorizationHeader();
@@ -34,21 +35,17 @@ export default boot(({ app, router }) => {
       const originalConfig = error.config;
 
       if (error.response?.status === 401) {
-        if (!originalConfig._retry) {
-          originalConfig._retry = true;
-          try {
-            // if this request failes, the user will be redirected to a sign in page
-            const accessToken = await refreshAccessToken();
-            
-            setAuthorizationHeader(accessToken);
-            originalConfig.headers.Authorization = `Bearer ${accessToken}`;
+        try {
+          // if this request failes, the user will be redirected to a sign in page
+          const accessToken = await refreshAccessToken();
 
-            // repeat initial request with refreshed access token
-            return api(originalConfig);
-          } catch (error) {
-            router.push({ name: PATH.SIGN_IN });
-          }
-          return Promise.reject(error);
+          setAuthorizationHeader(accessToken);
+          originalConfig.headers.Authorization = `Bearer ${accessToken}`;
+
+          // repeat initial request with refreshed access token
+          return api(originalConfig);
+        } catch (error) {
+          router.push({ name: PATH.SIGN_IN });
         }
       }
       return Promise.reject(error);
@@ -56,4 +53,4 @@ export default boot(({ app, router }) => {
   );
 });
 
-export { api };
+export { client, api };

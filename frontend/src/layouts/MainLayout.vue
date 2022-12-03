@@ -213,6 +213,7 @@ const conversations = [
 
 const $q = useQuasar();
 const userStore = useUserStore();
+
 const chatMenuOpen = ref(false);
 const search = ref('');
 const message = ref('');

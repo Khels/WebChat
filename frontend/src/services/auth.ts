@@ -1,14 +1,10 @@
-import axios from 'axios';
-import { api } from 'src/boot/axios';
+import { api, client } from 'src/boot/axios';
 import { TokenResponse } from 'src/models/auth';
-
-import applyCaseMiddleware from 'axios-case-converter';
 
 export async function refreshAccessToken() {
   // this instance of axios doesn't have any interceptors so there won't be infinite retry
-  const client = applyCaseMiddleware(axios.create({ baseURL: process.env.AXIOS_BASE_URL }));
   const { data } = await client.post<TokenResponse>(
-    'token/refresh',
+    process.env.AXIOS_BASE_URL + '/token/refresh',
     {},
     {
       headers: {

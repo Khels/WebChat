@@ -66,7 +66,7 @@ import { useUserStore } from 'src/stores/user-store';
 import { required } from 'src/utils/validators';
 import { ref } from 'vue';
 
-const store = useUserStore();
+const userStore = useUserStore();
 
 const username = ref<string>('');
 const password = ref<string>('');
@@ -83,7 +83,7 @@ async function submit() {
   )
 
   if (await signInForm.value?.validate()) {
-    await store.signIn(username.value, password.value);
+    await userStore.signIn(username.value, password.value);
   }
 }
 </script>
