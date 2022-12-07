@@ -12,6 +12,21 @@ export const useUserStore = defineStore('user', {
   state: () => ({
     user: null as User | null,
   }),
+  getters: {
+    displayName(): string {
+      if (!this.user) return '';
+
+      let name = '';
+      if (this.user?.firstName) {
+        name = this.user?.firstName;
+        if (this.user?.lastName) {
+          name = name + ' ' + this.user?.lastName;
+        }
+      }
+
+      return name ? name : this.user?.username
+    }
+  },
   actions: {
     async getCurrentUser() {
       try {
@@ -79,7 +94,7 @@ export const useUserStore = defineStore('user', {
         await this.getCurrentUser();
 
         // redirect to main page
-        this.router.push({ name: PATH.INDEX });
+        this.router.push({ name: PATH.CHAT });
       } catch (error) {
         let message;
 

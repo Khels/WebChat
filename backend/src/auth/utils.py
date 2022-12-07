@@ -95,7 +95,6 @@ async def create_token(
     )
 
     session.add(new_token)
-
     await session.commit()
     await session.refresh(new_token)
 

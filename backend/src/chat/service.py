@@ -1,4 +1,5 @@
 import asyncio
+import enum
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, AsyncIterator
 from urllib.parse import urlparse
@@ -8,6 +9,18 @@ import asyncio_redis
 from .exceptions import Unsubscribed
 
 # import redis.asyncio as redis
+
+
+class ChatType(enum.Enum):
+    saved_messages = 1
+    dialogue = 2
+    group = 3
+
+
+class MessageType(enum.Enum):
+    text = 1
+    voice = 2
+    file = 3
 
 
 class Event:
@@ -131,7 +144,9 @@ class Broadcast:
         await self._backend.publish(channel, message)
 
     @asynccontextmanager
-    async def subscribe(self, channel: str) -> AsyncIterator[Subscriber]:
+    async def subscribe(
+        self, channel: str
+    ) -> AsyncIterator[Subscriber]:
         queue = asyncio.Queue()
 
         try:

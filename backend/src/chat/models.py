@@ -1,42 +1,60 @@
-from datetime import datetime
-
-from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
-                        Text)
+from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from src.database import Base
+from src.models import CreatedAtMixin, IdMixin
+
+from .schemas import ParticipantCreate
+from .service import ChatType, MessageType
 
 
-class Chat(Base):
+class Chat(IdMixin, CreatedAtMixin, Base):
     __tablename__ = "chat"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    image_url = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.timestamp)
+    name = Column(String)
+    type = Column(Enum(ChatType, name="chat_type"), nullable=False)
+    image_url = Column(String)
 
-    participants = relationship(
-        "User",
-        secondary="chat_participant",
-        backref="chats"
-    )
+    messages = relationship("Message", back_populates="chat")
+    participants = relationship("ChatParticipant", back_populates="chat")
+
+    def add_participants(self, participants: list[ParticipantCreate]):
+        for participant in participants:
+            self.participants.append(ChatParticipant(
+                participant_id=participant.id,
+                is_admin=participant.is_admin
+            ))
 
 
 class ChatParticipant(Base):
     __tablename__ = "chat_participant"
 
-    chat_id = Column(Integer, ForeignKey("chat.id"), primary_key=True)
-    participant_id = Column(Integer, ForeignKey("user.id"), primary_key=True)
+    chat_id = Column(
+        Integer,
+        ForeignKey("chat.id", ondelete="CASCADE"),
+        primary_key=True
+    )
+    participant_id = Column(
+        Integer,
+        ForeignKey("user.id", ondelete="CASCADE"),
+        primary_key=True
+    )
     is_admin = Column(Boolean, default=False, nullable=False)
 
+    chat = relationship("Chat", back_populates="participants")
+    participant = relationship("User", back_populates="chats")
 
-class Message(Base):
+
+class Message(IdMixin, CreatedAtMixin, Base):
     __tablename__ = "message"
 
-    id = Column(Integer, primary_key=True)
+    author_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     sender_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     chat_id = Column(Integer, ForeignKey("chat.id"), nullable=False)
-    content = Column(Text)
-    is_edited = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.timestamp)
+    type = Column(Enum(MessageType, name="message_type"), nullable=False)
+    content = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False)
+    is_edited = Column(Boolean, default=False, nullable=False)
 
-    chat = relationship("Chat", backref="messages")
+    author = relationship("User", foreign_keys=[author_id])
+    sender = relationship("User", foreign_keys=[sender_id])
+    chat = relationship("Chat", back_populates="messages")

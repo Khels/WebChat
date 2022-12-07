@@ -162,8 +162,9 @@
             v-model="message"
             autogrow
             placeholder="Напишите сообщение..."
+            @keydown.ctrl.enter.exact="sendMessage()"
           />
-          <q-btn round flat icon="send" v-show="message" />
+          <q-btn round flat icon="send" v-show="message" @click="sendMessage()" />
           <q-btn round flat icon="mic" v-show="!message" />
         </q-toolbar>
       </q-footer>
@@ -173,8 +174,20 @@
 
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
+import { useChatStore } from 'src/stores/chat-store';
 import { useUserStore } from 'src/stores/user-store';
 import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+interface TokenMessage {
+  token: string | null
+}
+
+interface Message {
+  id: string,
+  text: string[],
+  own: boolean
+}
 
 const conversations = [
   {
@@ -212,7 +225,9 @@ const conversations = [
 ];
 
 const $q = useQuasar();
+const router = useRouter();
 const userStore = useUserStore();
+const chatStore = useChatStore();
 
 const chatMenuOpen = ref(false);
 const search = ref('');
@@ -220,17 +235,48 @@ const message = ref('');
 const currentConversationIndex = ref(0);
 
 const currentConversation = computed(() => {
-  return conversations[ currentConversationIndex.value ]
+  return conversations[ currentConversationIndex.value ];
 });
 const style = computed(() => ({
   height: $q.screen.height + 'px'
 }));
 
-function toggleChatMenu () {
-  chatMenuOpen.value = !chatMenuOpen.value
+const ws = new WebSocket('ws://localhost:8000/api/v1/chat');
+
+ws.onopen = (event) => {
+  sendMessage({ token: localStorage.getItem('accessToken') });
 }
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('onmessage', data);
+  chatStore.messages.push({content: data.content, user: data.user });
+}
+
+ws.onclose = (event) => {
+  console.log('ws closed: ', event);
+  if (event.code === 4000) {
+    // authentication failed
+  }
+}
+
+function sendMessage(msg: string | TokenMessage | null = null) {
+  if (msg) {
+    ws.send(JSON.stringify(msg))
+  } else if (message.value) {
+    // messages.value.push(message.value)
+    ws.send(JSON.stringify({ chat_id: 10, type: 1, content: message.value }));
+    message.value = '';
+  }
+}
+
+function toggleChatMenu () {
+  chatMenuOpen.value = !chatMenuOpen.value;
+}
+
 function setCurrentConversation (index: number) {
-  currentConversationIndex.value = index
+  currentConversationIndex.value = index;
+  router.push({ query: { id: index } })
 }
 </script>
 

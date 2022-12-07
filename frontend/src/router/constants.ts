@@ -1,5 +1,5 @@
 export const PATH = {
-  INDEX: 'index',
+  CHAT: 'chat',
   SIGN_UP: 'signUp',
   SIGN_IN: 'signIn',
   SIGN_OUT: 'signOut',

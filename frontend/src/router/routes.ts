@@ -3,6 +3,10 @@ import { PATH } from './constants';
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/',
+    redirect: { name: PATH.CHAT }
+  },
+  {
     path: '/auth',
     component: () => import('layouts/AuthLayout.vue'),
     children: [
@@ -19,12 +23,12 @@ const routes: RouteRecordRaw[] = [
     ]
   },
   {
-    path: '/',
+    path: '/chats',
     component: () => import('layouts/MainLayout.vue'),
     children: [
       {
         path: '',
-        name: PATH.INDEX,
+        name: PATH.CHAT,
         component: () => import('pages/ChatPage.vue'),
         meta: { requiresAuth: true }
       }

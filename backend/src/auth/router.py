@@ -63,7 +63,6 @@ async def register(
     new_user = User(**user_dict)
 
     session.add(new_user)
-
     await session.commit()
     await session.refresh(new_user)
 
@@ -183,8 +182,8 @@ async def me(current_user: User = Depends(get_current_active_user)):
 async def users(
     session: AsyncSession = Depends(get_db_session)
 ):
-    results = await session.execute(select(User))
-    return results.scalars().all()
+    result = await session.execute(select(User))
+    return result.scalars().all()
 
 
 @router.get("/users/{user_id}", response_model=UserRead)
