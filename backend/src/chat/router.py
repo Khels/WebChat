@@ -1,24 +1,27 @@
 import json
 from datetime import datetime
 
+from anyio import create_task_group
 from fastapi import (APIRouter, Depends, HTTPException, Response, WebSocket,
                      WebSocketDisconnect, status)
-from fastapi.concurrency import run_until_first_complete
+from fastapi.websockets import WebSocketState
 from pydantic import ValidationError
 from sqlalchemy import delete, select
 from sqlalchemy.orm import joinedload, selectinload
 from src.auth.dependencies import get_current_active_user
 from src.auth.models import User
-from src.auth.schemas import UserRead
-from src.auth.utils import authenticate_user_ws
+from src.auth.utils import authenticate_user_token
 from src.config import REDIS_URL
 from src.database import AsyncSession, get_db_session
+from src.enums import WSError
 
+from .enums import ChatType, WSMessageType
 from .exceptions import ChatCreationHTTPException
 from .models import Chat, ChatParticipant
-from .schemas import ChatCreate, ChatRead, MessageRead, ParticipantCreate
-from .service import Broadcast, ChatType
-from .utils import create_message
+from .schemas import (ChatCreate, ChatRead, MessageRead, ParticipantCreate,
+                      WSAuthMessage, WSMessage)
+from .service import Broadcast
+from .utils import create_message, send_error
 
 broadcast = Broadcast(REDIS_URL)
 
@@ -35,37 +38,39 @@ async def message_receiver(
     user: User,
     session: AsyncSession
 ):
-    while True:
+    while websocket.client_state == WebSocketState.CONNECTED:
         message = await websocket.receive()
         websocket._raise_on_disconnect(message)
+        msg_type = None
         data = {}
 
-        print(message)
-
         if message["text"]:
+            data = json.loads(message["text"])
             try:
-                message_data = json.loads(message["text"])
-                new_message = await create_message(message_data, user, session)
-                data = new_message.dict()
+                message_data = WSMessage(**data)
 
-                # TODO: notify user message was received by server
-                # websocket.send_json({
-                #     "flow": MessageFlow.notification,
-                #     "content": {
+                match message_data.type:
+                    case WSMessageType.NOTIFICATION:
+                        msg_type = WSMessageType.NOTIFICATION.value
+                    case WSMessageType.MESSAGE:
+                        msg_type = WSMessageType.MESSAGE.value
 
-                #     }
-                # })
+                        new_message = await create_message(
+                            message_data.dict()["body"], user, session)
+                        data = new_message.dict()
             except ValidationError as e:
-                await websocket.send_json({"error": str(e)})
+                await send_error(websocket, e.json())
+                continue
             except HTTPException as e:
-                await websocket.send_json({"error": str(e)})
+                await send_error(websocket, str(e))
+                continue
         elif message["bytes"]:
             # TODO process uploaded files
             pass
 
         data = {
-            "content": data,
-            "user": UserRead.from_orm(user).dict()
+            "type": msg_type,
+            "body": data,
         }
         print(data)
         await broadcast.publish(channel="chatroom",
@@ -75,6 +80,7 @@ async def message_receiver(
 async def message_sender(websocket: WebSocket):
     async with broadcast.subscribe(channel="chatroom") as subscriber:
         async for event in subscriber:
+            print("\n\n\n", event.message)
             await websocket.send_json(event.message)
 
 
@@ -85,28 +91,40 @@ async def chat(
 ):
     await websocket.accept()
 
-    user = await authenticate_user_ws(
-        websocket=websocket,
-        session=session
-    )
-
-    user.last_online = None  # user online
-    await session.commit()
-
+    user = None
     try:
-        await run_until_first_complete(
-            (message_sender, {
-                "websocket": websocket
-            }),
-            (message_receiver, {
-                "websocket": websocket,
-                "user": user,
-                "session": session
-            }),
+        # wait for the first message with access token
+        data = await websocket.receive_json()
+
+        try:
+            data = WSAuthMessage(**data)
+        except ValidationError as e:
+            # send error message with full description
+            await send_error(websocket, e.json())
+            raise WebSocketDisconnect(
+                code=WSError.VALIDATION_ERROR,
+                reason=WSError.VALIDATION_ERROR.label
+            )
+
+        user = await authenticate_user_token(
+            token=data.body.token,
+            session=session,
+            websocket=websocket
         )
-    except WebSocketDisconnect:
-        user.last_online = datetime.utcnow()  # user offline
+
+        user.last_online = None  # user online
         await session.commit()
+
+        # TODO notify other participants that user is online
+
+        async with create_task_group() as task_group:
+            task_group.start_soon(message_sender, websocket)
+            task_group.start_soon(message_receiver, websocket, user, session)
+    except WebSocketDisconnect as e:
+        if user:
+            user.last_online = datetime.utcnow()  # user offline
+            await session.commit()
+        await websocket.close(code=e.code, reason=e.reason)
 
 
 @router.post("/chats")
@@ -129,9 +147,9 @@ async def create_chat(
     print("\n\n\nparticipants: ", chat.participants)
 
     match chat.type:
-        case ChatType.saved_messages:
+        case ChatType.SAVED_MESSAGES:
             query = select(Chat).where(
-                Chat.type == ChatType.saved_messages,
+                Chat.type == ChatType.SAVED_MESSAGES,
                 Chat.participants.any(
                     ChatParticipant.participant_id.in_(
                         [p.id for p in chat.participants]
@@ -144,14 +162,14 @@ async def create_chat(
                     detail="There is already Saved messages "
                            "chat created for this user."
                 )
-        case ChatType.dialogue:
+        case ChatType.DIALOGUE:
             for participant in chat.participants:
                 # in a dialogue, both users are admins
                 participant.is_admin = True
 
             # TODO: fix the query
             query = select(Chat).where(
-                Chat.type == ChatType.dialogue,
+                Chat.type == ChatType.DIALOGUE,
                 Chat.participants.any(
                     ChatParticipant.participant_id.in_(
                         [p.id for p in chat.participants]

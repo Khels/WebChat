@@ -20,7 +20,7 @@ def upgrade() -> None:
     op.create_table('token',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('token', sa.String(length=128), nullable=False),
-    sa.Column('type', sa.Enum('access', 'refresh', name='token_type'), nullable=False),
+    sa.Column('type', sa.Enum('ACCESS', 'REFRESH', name='token_type'), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('expires', sa.DateTime(), nullable=False),
     sa.Column('scopes', sa.Text(), nullable=False),

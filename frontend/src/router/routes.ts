@@ -27,7 +27,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       {
-        path: '',
+        path: ':id?',
         name: PATH.CHAT,
         component: () => import('pages/ChatPage.vue'),
         meta: { requiresAuth: true }

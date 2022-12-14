@@ -61,10 +61,6 @@
         :breakpoint="690"
       >
         <q-toolbar class="bg-grey-3">
-          <q-avatar class="cursor-pointer">
-            <img src="https://cdn.quasar.dev/logo-v2/svg/logo.svg" />
-          </q-avatar>
-
           <q-space />
 
           <q-btn round flat icon="message" />
@@ -174,20 +170,43 @@
 
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
+import { Message } from 'src/models/chat';
+import { MessageType, WSMessageType } from 'src/services/constants';
 import { useChatStore } from 'src/stores/chat-store';
 import { useUserStore } from 'src/stores/user-store';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-interface TokenMessage {
-  token: string | null
+interface WSMessageBase {
+  type: number;
 }
 
-interface Message {
-  id: string,
-  text: string[],
-  own: boolean
+interface WSAuthMessageSend extends WSMessageBase {
+  body: {
+    token: string | null;
+  };
 }
+
+interface WSMessageSend extends WSMessageBase {
+  body: {
+    chat_id: number;
+    type: number;
+    content: string;
+  };
+}
+
+interface WSErrorMessageReceive {
+  type?: never;
+  body?: never;
+  error: object;
+}
+
+interface WSMessage extends WSMessageBase {
+  body: Message;
+  error?: never;
+}
+
+type WSMessageReceive = WSMessage | WSErrorMessageReceive;
 
 const conversations = [
   {
@@ -241,16 +260,26 @@ const style = computed(() => ({
   height: $q.screen.height + 'px'
 }));
 
-const ws = new WebSocket('ws://localhost:8000/api/v1/chat');
+const ws = new WebSocket(process.env.WEBSOCKET_BASE_URL + '/chat');
 
 ws.onopen = (event) => {
-  sendMessage({ token: localStorage.getItem('accessToken') });
+  const token = localStorage.getItem('accessToken')
+  send({
+    type: WSMessageType.AUTHENTICATION,
+    body: { token }
+  });
 }
 
 ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log('onmessage', data);
-  chatStore.messages.push({content: data.content, user: data.user });
+  const data: WSMessageReceive = JSON.parse(event.data);
+  console.log('onmessage data: ', data);
+
+  if (data.error) {
+    console.log('error: ', data.error);
+  } else {
+    chatStore.messages.push(data.body);
+    console.log(chatStore.messages);
+  }
 }
 
 ws.onclose = (event) => {
@@ -260,23 +289,33 @@ ws.onclose = (event) => {
   }
 }
 
-function sendMessage(msg: string | TokenMessage | null = null) {
-  if (msg) {
-    ws.send(JSON.stringify(msg))
-  } else if (message.value) {
+
+function sendMessage() {
+  if (message.value) {
     // messages.value.push(message.value)
-    ws.send(JSON.stringify({ chat_id: 10, type: 1, content: message.value }));
+    send({
+      type: WSMessageType.MESSAGE,
+      body: {
+        chat_id: 1,
+        type: MessageType.TEXT,
+        content: message.value
+      }
+    })
     message.value = '';
   }
 }
 
-function toggleChatMenu () {
+function send(msg: WSAuthMessageSend | WSMessageSend) {
+  ws.send(JSON.stringify(msg))
+}
+
+function toggleChatMenu () { 
   chatMenuOpen.value = !chatMenuOpen.value;
 }
 
 function setCurrentConversation (index: number) {
   currentConversationIndex.value = index;
-  router.push({ query: { id: index } })
+  router.push({ params: { id: index } })
 }
 </script>
 

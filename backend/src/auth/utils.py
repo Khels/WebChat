@@ -2,15 +2,17 @@ import secrets
 import string
 from datetime import datetime, timedelta
 
-from fastapi import HTTPException, WebSocket
+from fastapi import HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy import delete, select
 from sqlalchemy.orm import joinedload
 from src.config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 from src.database import AsyncSession
+from src.enums import WSError
 
+from .enums import TokenType
 from .exceptions import InvalidTokenHTTPException, TokenExpiredHTTPException
 from .models import Token, User
-from .service import TokenType, pwd_context
+from .service import pwd_context
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -33,7 +35,7 @@ async def get_user(session: AsyncSession, username: str) -> User:
 
 
 async def authenticate_user(
-    session: AsyncSession, username: str, password: str
+    username: str, password: str, session: AsyncSession
 ) -> User | bool:
     user = await get_user(session, username)
     if not user:
@@ -44,26 +46,25 @@ async def authenticate_user(
     return user
 
 
-async def authenticate_user_ws(
-    websocket: WebSocket, session: AsyncSession
-) -> User:
-    # wait for the first message with access token
-    data = await websocket.receive_json()
-    token = data.get("token", None)
-
-    if not token:
-        await websocket.close(code=4000, reason="No token provided")
-
+async def authenticate_user_token(
+    token: str,
+    session: AsyncSession,
+    websocket: WebSocket | None = None
+) -> User | bool:
     access_token = await get_token(
         token=token,
-        token_type=TokenType.access,
+        token_type=TokenType.ACCESS,
         session=session,
         websocket=websocket
     )
     user = access_token.user
 
     if not user.is_active:
-        await websocket.close(code=4002, reason="Inactive user")
+        if websocket:
+            raise WebSocketDisconnect(
+                code=WSError.INACTIVE_USER, reason=WSError.INACTIVE_USER.label)
+        else:
+            raise HTTPException(status_code=400, detail="Inactive user")
 
     return user
 
@@ -108,7 +109,7 @@ async def create_access_token(
 ) -> Token:
     return await create_token(
         session=session,
-        token_type=TokenType.access,
+        token_type=TokenType.ACCESS,
         user=user,
         expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         scopes=scopes
@@ -123,7 +124,7 @@ async def create_refresh_token(
 ) -> Token:
     return await create_token(
         session=session,
-        token_type=TokenType.refresh,
+        token_type=TokenType.REFRESH,
         user=user,
         expires=expires if expires else timedelta(
             days=REFRESH_TOKEN_EXPIRE_DAYS),
@@ -147,13 +148,15 @@ async def get_token(
 
     if access_token is None:
         if websocket:
-            await websocket.close(code=4000, reason="Token is invalid")
+            raise WebSocketDisconnect(
+                code=WSError.INVALID_TOKEN, reason=WSError.INVALID_TOKEN.label)
         else:
             raise InvalidTokenHTTPException()
 
     if access_token.expired():
         if websocket:
-            await websocket.close(code=4001, reason="Token has expired")
+            raise WebSocketDisconnect(
+                code=WSError.TOKEN_EXPIRED, reason=WSError.TOKEN_EXPIRED.label)
         else:
             raise TokenExpiredHTTPException()
 

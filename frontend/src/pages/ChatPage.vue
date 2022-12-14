@@ -1,5 +1,6 @@
 <template>
   <q-page class="row items-start justify-center q-pa-md">
+    
     <div style="width: 100%; max-width: 400px">
       <q-chat-message
         v-for="message in chatStore.messages"
@@ -8,8 +9,8 @@
         avatar="https://cdn.quasar.dev/img/avatar3.jpg"
         :text="[message.content]"
         stamp="20:51"
-        :sent="(message.user.id == userStore.user?.id)"
-        :bg-color="'amber-7' ? message.user.id == userStore.user?.id : 'primary'"
+        :sent="(message.sender_id == userStore.user?.id)"
+        :bg-color="'amber-7' ? message.sender_id == userStore.user?.id : 'primary'"
       ></q-chat-message>
     </div>
     <q-page-scroller reverse position="top" :scroll-offset="20" :offset="[0, 18]">

@@ -5,9 +5,10 @@ from src.database import AsyncSession, get_db_session
 from src.schemas import ClientErrorResponse
 
 from .dependencies import get_current_active_user
+from .enums import TokenType
 from .models import Token, User
 from .schemas import TokenResponse, UserCreate, UserRead
-from .service import TokenType, oauth2_scheme
+from .service import oauth2_scheme
 from .utils import (authenticate_user, create_access_token,
                     create_refresh_token, delete_user_tokens,
                     get_password_hash, get_token, get_user)
@@ -84,7 +85,7 @@ async def token(
     session: AsyncSession = Depends(get_db_session)
 ):
     user = await authenticate_user(
-        session, form_data.username, form_data.password)
+        form_data.username, form_data.password, session)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -109,10 +110,10 @@ async def token(
 @router.get("/tokens")
 async def get_tokens(session: AsyncSession = Depends(get_db_session)):
     result = await session.execute(select(Token).where(
-        Token.type.in_([TokenType.access])))
+        Token.type.in_([TokenType.ACCESS])))
     access_tokens = len(list(result.scalars()))
     result = await session.execute(select(Token).where(
-        Token.type.in_([TokenType.refresh])
+        Token.type.in_([TokenType.REFRESH])
     ))
     refresh_tokens = len(list(result.scalars()))
     return {
@@ -135,7 +136,7 @@ async def refresh_token(
     session: AsyncSession = Depends(get_db_session)
 ):
     refresh_token = await get_token(
-        token=token, token_type=TokenType.refresh, session=session)
+        token=token, token_type=TokenType.REFRESH, session=session)
 
     user = refresh_token.user
     expires = refresh_token.expires

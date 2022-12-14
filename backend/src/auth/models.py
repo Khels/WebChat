@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 from src.database import Base
 from src.models import IdMixin
 
-from .service import TokenType
+from .enums import TokenType
 
 
 class User(IdMixin, Base):

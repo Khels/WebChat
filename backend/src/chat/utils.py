@@ -1,10 +1,14 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException, WebSocket, status
 from sqlalchemy import select
 from src.auth.models import User
 from src.database import AsyncSession
 
 from .models import Chat, ChatParticipant, Message
 from .schemas import MessageCreate, MessageRead
+
+
+async def send_error(websocket: WebSocket, error: dict):
+    await websocket.send_json({"error": error})
 
 
 async def create_message(

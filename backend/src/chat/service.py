@@ -1,5 +1,4 @@
 import asyncio
-import enum
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, AsyncIterator
 from urllib.parse import urlparse
@@ -9,18 +8,6 @@ import asyncio_redis
 from .exceptions import Unsubscribed
 
 # import redis.asyncio as redis
-
-
-class ChatType(enum.Enum):
-    saved_messages = 1
-    dialogue = 2
-    group = 3
-
-
-class MessageType(enum.Enum):
-    text = 1
-    voice = 2
-    file = 3
 
 
 class Event:
@@ -95,8 +82,9 @@ class RedisBackend:
     #     self._url = url
 
     # async def connect(self) -> None:
-    #     self._client: redis.Redis = await redis.from_url(self._url)
+    #     self._client = redis.from_url(self._url)
     #     self._pubsub = self._client.pubsub()
+    #     await self._pubsub.subscribe("")
 
     # async def disconnect(self) -> None:
     #     await self._pubsub.close()
@@ -112,9 +100,12 @@ class RedisBackend:
     #     await self._client.publish(channel, message)
 
     # async def next_published(self) -> Event:
-    #     async for message in self._pubsub.listen():
-    #         yield Event(channel=message["channel"],
-    #                     message=message["data"].decode())
+    #     message = await self._pubsub.get_message(
+    #         ignore_subscribe_messages=True)
+    #     print("\n\n\nmessage: ", message)
+    #     if message is not None:
+    #         return Event(channel=message["channel"],
+    #                      message=message["data"].decode())
 
 
 class Broadcast:

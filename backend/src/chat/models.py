@@ -3,8 +3,8 @@ from sqlalchemy.orm import relationship
 from src.database import Base
 from src.models import CreatedAtMixin, IdMixin
 
+from .enums import ChatType, MessageType
 from .schemas import ParticipantCreate
-from .service import ChatType, MessageType
 
 
 class Chat(IdMixin, CreatedAtMixin, Base):
