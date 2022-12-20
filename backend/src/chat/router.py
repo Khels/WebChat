@@ -6,8 +6,8 @@ from fastapi import (APIRouter, Depends, HTTPException, Response, WebSocket,
                      WebSocketDisconnect, status)
 from fastapi.websockets import WebSocketState
 from pydantic import ValidationError
-from sqlalchemy import delete, select
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy import and_, delete, select
+from sqlalchemy.orm import contains_eager, joinedload
 from src.auth.dependencies import get_current_active_user
 from src.auth.models import User
 from src.auth.utils import authenticate_user_token
@@ -17,7 +17,7 @@ from src.enums import WSError
 
 from .enums import ChatType, WSMessageType
 from .exceptions import ChatCreationHTTPException
-from .models import Chat, ChatParticipant
+from .models import Chat, ChatParticipant, Message
 from .schemas import (ChatCreate, ChatRead, MessageRead, ParticipantCreate,
                       WSAuthMessage, WSMessage)
 from .service import Broadcast
@@ -74,7 +74,7 @@ async def message_receiver(
         }
         print(data)
         await broadcast.publish(channel="chatroom",
-                                message=json.dumps(data))
+                                message=json.dumps(data, default=str))
 
 
 async def message_sender(websocket: WebSocket):
@@ -202,14 +202,22 @@ async def get_chats(
     user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session)
 ):
-    query = select(Chat).options(
-        selectinload(Chat.participants)
+    subquery = select(Message.id.label("last_message_id")).order_by(
+        Message.created_at.desc()
+    ).limit(1).scalar_subquery().correlate(Chat)
+
+    query = select(Chat).outerjoin(
+        Message, and_(Message.chat_id == Chat.id, Message.id == subquery)
+    ).options(
+        joinedload(Chat.participants),
+        contains_eager(Chat.messages)
     ).where(
-        Chat.participants.any(User.id == user.id)
+        Chat.participants.any(ChatParticipant.participant_id == user.id)
     )
+
     result = await session.execute(query)
 
-    return result.scalars().all()
+    return result.unique().scalars().all()
 
 
 @router.delete("/chats/{chat_id}")
@@ -229,11 +237,13 @@ async def delete_chat(
 @router.get("/chats/{chat_id}/messages", response_model=list[MessageRead])
 async def get_messages(
     chat_id: int,
+    limit: int | None = None,
+    offset: int | None = None,
     user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session)
 ):
-    query = select(Chat).options(
-        joinedload(Chat.messages)
+    query = select(Chat).join(Chat.participants).options(
+        contains_eager(Chat.participants),
     ).where(
         Chat.id == chat_id,
         ChatParticipant.participant_id == user.id
@@ -243,4 +253,13 @@ async def get_messages(
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    return chat.messages
+    query = select(Message).where(Message.chat_id == chat_id).order_by(
+        Message.created_at)
+    if limit is not None:
+        query = query.limit(limit)
+    if offset is not None:
+        query = query.offset(offset)
+    result = await session.execute(query)
+    messages = result.scalars().all()
+
+    return messages

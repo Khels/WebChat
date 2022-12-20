@@ -1,16 +1,35 @@
 export interface Message {
   id: number;
-  author_id: number;
-  sender_id: number;
-  chat_id: number;
+  authorId: number;
+  senderId: number;
+  chatId: number;
   type: number;
   content: string
-  is_read: boolean;
-  is_edited: boolean;
-  created_at: Date;
+  isRead: boolean;
+  isEdited: boolean;
+  createdAt: string;
 }
 
-export interface Chat {
+export interface PreviewMessage {
+  content: string;
+  createdAt: string;
+  isRead: boolean;
+}
+
+export interface Participant {
+  participantId: string;
+  isAdmin: boolean;
+}
+
+export interface ChatResponse {
   id: number;
+  name?: string;
+  type: number;
+  imageUrl?: string;
+  participants: Participant[];
   messages: Message[];
+}
+
+export interface Chat extends ChatResponse {
+  previewMessage?: PreviewMessage;
 }

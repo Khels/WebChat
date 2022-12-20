@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Extra, Field, root_validator, validator
 
 from .enums import ChatType, MessageType, WSMessageType, WSNotificationType
 
@@ -13,34 +13,6 @@ class ParticipantCreate(BaseModel):
 class ParticipantRead(BaseModel):
     participant_id: int
     is_admin: bool
-
-    class Config:
-        orm_mode = True
-
-
-# ## Chat ###
-class ChatBase(BaseModel):
-    type: ChatType
-
-
-class ChatCreate(ChatBase):
-    name: str | None
-    participants: list[ParticipantCreate]
-    image_url: str | None
-
-    @root_validator
-    def check_name(cls, values: dict):
-        name, chat_type = values.get("name"), values.get("type")
-        if chat_type == ChatType.GROUP:
-            assert name, "name should be specified for group chats"
-        return values
-
-
-class ChatRead(ChatBase):
-    id: int
-    name: str | None
-    image_url: str | None
-    participants: list[ParticipantRead]
 
     class Config:
         orm_mode = True
@@ -70,6 +42,35 @@ class MessageRead(MessageBase):
         use_enum_values = True
 
 
+# ## Chat ###
+class ChatBase(BaseModel):
+    type: ChatType
+
+
+class ChatCreate(ChatBase):
+    name: str | None
+    participants: list[ParticipantCreate]
+    image_url: str | None
+
+    @root_validator
+    def check_name(cls, values: dict):
+        name, chat_type = values.get("name"), values.get("type")
+        if chat_type == ChatType.GROUP:
+            assert name, "name should be specified for group chats"
+        return values
+
+
+class ChatRead(ChatBase):
+    id: int
+    name: str | None
+    image_url: str | None
+    participants: list[ParticipantRead]
+    messages: list[MessageRead]
+
+    class Config:
+        orm_mode = True
+
+
 # ## Websocket ###
 class WSAuthBody(BaseModel):
     token: str = Field(default=..., min_length=64)
@@ -79,9 +80,13 @@ class WSNotificationBody(BaseModel):
     type: WSNotificationType
     user_id: int
 
+    class Config:
+        extra = Extra.forbid
+
 
 class WSMessageBody(MessageCreate):
-    pass
+    class Config:
+        extra = Extra.forbid
 
 
 class WSMessageBase(BaseModel):
@@ -99,15 +104,4 @@ class WSAuthMessage(WSMessageBase):
 
 
 class WSMessage(WSMessageBase):
-    body: dict
-
-    @root_validator
-    def check_body(cls, values: dict):
-        msg_type, body = values.get("type"), values.get("body")
-
-        match msg_type:
-            case WSMessageType.NOTIFICATION:
-                values["body"] = WSNotificationBody(**body)
-            case WSMessageType.MESSAGE:
-                values["body"] = WSMessageBody(**body)
-        return values
+    body: WSNotificationBody | WSMessageBody

@@ -4,130 +4,141 @@ import { api } from 'src/boot/axios';
 import { useNotifications } from 'src/composables/notifications';
 import { TokenResponse, User } from 'src/models/auth';
 import { PATH } from 'src/router/constants';
+import router from 'src/router/index';
 import { setAuthorizationHeader } from 'src/services/auth';
+import { computed, ref } from 'vue';
 
-const notify = useNotifications();
 
-export const useUserStore = defineStore('user', {
-  state: () => ({
-    user: null as User | null,
-  }),
-  getters: {
-    displayName(): string {
-      if (!this.user) return '';
+export const useUserStore = defineStore('user', () => {
+  const notify = useNotifications();
 
-      let name = '';
-      if (this.user?.firstName) {
-        name = this.user?.firstName;
-        if (this.user?.lastName) {
-          name = name + ' ' + this.user?.lastName;
-        }
+  const user = ref<User | null>(null);
+
+  const displayName = computed(() => {
+    if (!user.value) return '';
+
+    let name = '';
+    if (user.value?.firstName) {
+      name = user.value?.firstName;
+      if (user.value?.lastName) {
+        name = name + ' ' + user.value?.lastName;
       }
-
-      return name ? name : this.user?.username
     }
-  },
-  actions: {
-    async getCurrentUser() {
-      try {
-        const { data } = await api.get<User>('users/me');
 
-        this.user = data;
-      } catch (error) {
-        notify.error();
+    return name ? name : user.value?.username
+  })
+
+  async function getCurrentUser() {
+    try {
+      const { data } = await api.get<User>('users/me');
+
+      user.value = data;
+    } catch (error) {
+      notify.error();
+    }
+  }
+
+  async function signUp(username: string, password: string, passwordConfirm: string) {
+    try {
+      await api.post(
+        'register',
+        {
+          username,
+          password,
+          passwordConfirm
+        }
+      );
+
+      // get access and refresh tokens
+      await signIn(username, password);
+    } catch (error) {
+      let message;
+
+      if (axios.isAxiosError(error)) {
+        switch (error.response?.status) {
+          case 409:
+            message = 'Это имя уже занято';
+            break;
+          case 400:
+            message = 'Пароли не совпадают';
+          default:
+            break;
+        }
       }
-    },
-    async signUp(username: string, password: string, passwordConfirm: string) {
-      try {
-        await api.post(
-          'register',
-          {
-            username: username,
-            password: password,
-            passwordConfirm: passwordConfirm
-          }
-        );
 
-        // get access and refresh tokens
-        await this.signIn(username, password);
-      } catch (error) {
-        let message;
+      notify.error(message);
+    }
+  }
 
-        if (axios.isAxiosError(error)) {
-          switch (error.response?.status) {
-            case 409:
-              message = 'Это имя уже занято';
-              break;
-            case 400:
-              message = 'Пароли не совпадают';
-            default:
-              break;
+  async function signIn(username: string, password: string) {
+    const userData = new FormData();
+    userData.append('username', username);
+    userData.append('password', password);
+
+    try {
+      const { data } = await api.post<TokenResponse>(
+        'token',
+        userData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
           }
         }
+      );
 
-        notify.error(message);
-      }
-    },
-    async signIn(username: string, password: string) {
-      const userData = new FormData();
-      userData.append('username', username);
-      userData.append('password', password);
+      setAuthorizationHeader(data.accessToken);
 
-      try {
-        const { data } = await api.post<TokenResponse>(
-          'token',
-          userData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            }
-          }
-        );
+      // save tokens to localStorage
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
 
-        setAuthorizationHeader(data.accessToken);
+      // get current user based on access token set above
+      await getCurrentUser();
 
-        // save tokens to localStorage
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
+      // redirect to main page
+      router.push({ name: PATH.CHAT });
+    } catch (error) {
+      let message;
 
-        // get current user based on access token set above
-        await this.getCurrentUser();
-
-        // redirect to main page
-        this.router.push({ name: PATH.CHAT });
-      } catch (error) {
-        let message;
-
-        if (axios.isAxiosError(error)) {
-          switch (error.response?.status) {
-            case 404:
-              message = 'Неверное имя пользователя';
-              break;
-            case 400:
-              message = 'Неверный пароль';
-            default:
-              break;
-          }
+      if (axios.isAxiosError(error)) {
+        switch (error.response?.status) {
+          case 404:
+            message = 'Неверное имя пользователя';
+            break;
+          case 400:
+            message = 'Неверный пароль';
+          default:
+            break;
         }
-
-        notify.error(message);
       }
-    },
-    async signOut() {
-      try {
-        await api.post('token/revoke');
 
-        this.user = null;
-        delete api.defaults.headers.Authorization;
+      notify.error(message);
+    }
+  }
 
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+  async function signOut() {
+    try {
+      await api.post('token/revoke');
 
-        // redirect to sign in page
-        this.router.push({ name: PATH.SIGN_IN });
-      } catch (error) {
-        notify.error();
-      }
-    },
-  },
+      user.value = null;
+      delete api.defaults.headers.Authorization;
+
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+
+      // redirect to sign in page
+      router.push({ name: PATH.SIGN_IN });
+    } catch (error) {
+      notify.error();
+    }
+  }
+
+  return {
+    user,
+    displayName,
+    getCurrentUser,
+    signUp,
+    signIn,
+    signOut,
+  }
 });

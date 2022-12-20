@@ -24,15 +24,9 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/chats',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [
-      {
-        path: ':id?',
-        name: PATH.CHAT,
-        component: () => import('pages/ChatPage.vue'),
-        meta: { requiresAuth: true }
-      }
-    ]
+    name: PATH.CHAT,
+    component: () => import('pages/ChatPage.vue'),
+    meta: { requiresAuth: true }
   },
   // Always leave this as last one,
   // but you can also remove it

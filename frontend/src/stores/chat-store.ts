@@ -1,28 +1,104 @@
 import { defineStore } from 'pinia';
+import { api } from 'src/boot/axios';
 import { useNotifications } from 'src/composables/notifications';
-import { Chat, Message } from 'src/models/chat';
+import { Chat, ChatResponse, Message, PreviewMessage } from 'src/models/chat';
+import router from 'src/router/index';
+import { ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 
-const notify = useNotifications();
+export const useChatStore = defineStore('chat', () => {
+  const route = useRoute();
+  const notify = useNotifications();
 
-export const useChatStore = defineStore('chat', {
-  state: () => ({
-    currentChat: null as Chat | null,
-    chats: [
-      {
-        id: 1,
-        messages: [] as Message[]
-      }
-    ] as Chat[],
-    messages: []
-  }),
-  getters: {
+  const currentChat = ref<Chat | null>(null);
+  const chats = ref<Chat[]>([]);
 
-  },
-  actions: {
-    addMessage(message: Message) {
-      if (this.currentChat) {
-        this.currentChat.messages.push(message);
+  watch(
+    () => route.query.id,
+    () => {
+      if (currentChat.value && currentChat.value.messages.length <= 1) {
+        getMessages(currentChat.value.id);
       }
     }
+  );
+
+  async function getChats() {
+    chats.value = [];
+
+    try {
+      const { data } = await api.get<ChatResponse[]>('chats');
+
+      data.forEach(chat => {
+        (chat as Chat).previewMessage = setUpPreviewMessage(chat);
+        chats.value.push((chat as Chat));
+      })
+    } catch (error) {
+      console.log('getChats', error);
+      
+      notify.error()
+    }
+  }
+
+  async function getMessages(chatId: number, limit = null, offset = null) {
+    try {
+      const { data } = await api.get<Message[]>(`chats/${chatId}/messages`, {
+        params: {
+          limit,
+          offset
+        }
+      });
+
+      for (const chat of chats.value) {
+        if (chat.id === chatId) {
+          chat.messages.push(...data);
+          console.log(chat.messages);
+          
+          break
+        }
+      }
+    } catch (error) {
+      
+    }
+  }
+
+  function setCurrentChat(chatId: number) {
+    for (const chat of chats.value) {
+      if (chat.id == chatId) {
+        currentChat.value = chat;
+        router.push({ query: { id: chatId } });
+        break
+      }
+    }
+  }
+
+  function setUpPreviewMessage(chat: ChatResponse): PreviewMessage {
+    const lastMessage = chat.messages[chat.messages.length - 1];
+    return {
+      content: lastMessage.content,
+      createdAt: formatCreationDate(lastMessage.createdAt),
+      isRead: lastMessage.isRead,
+    };
+  }
+
+  function formatCreationDate(createdAt: string): string {
+    createdAt;
+    return '12:22';
+  }
+
+  function addMessage(message: Message, chatId: number) {
+    for (const chat of chats.value) {
+      if (chat.id === chatId) {
+        chat.messages.push(message);
+        break;
+      }
+    }
+  }
+
+  return {
+    currentChat,
+    chats,
+    getChats,
+    getMessages,
+    setCurrentChat,
   }
 });

@@ -9,3 +9,9 @@ export const WSMessageType = {
   NOTIFICATION: 2,
   MESSAGE: 3,
 }
+
+export const ChatType = {
+  SAVED_MESSAGES: 1,
+  DIALOGUE: 2,
+  GROUP: 3,
+}
