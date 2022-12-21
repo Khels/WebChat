@@ -6,12 +6,12 @@
           v-for="message in chatStore.currentChat?.messages"
           :key="message.content"
           :name="chatStore.currentChat?.type === ChatType.GROUP ? userStore.displayName : undefined"
-          :avatar="chatStore.currentChat?.type === ChatType.GROUP ? 'https://cdn.quasar.dev/img/avatar3.jpg' : undefined"
-          :text="[message.content, message.senderId, userStore.user?.id]"
-          stamp="20:51"
+          :avatar="chatStore.currentChat?.type === ChatType.GROUP ? 'https://cdn.quasar.dev/team/razvan_stoenescu.jpeg' : undefined"
+          :text="[message.content]"
+          :stamp="message.createdAt.slice(11, 16)"
           :sent="(message.senderId == userStore.user?.id)"
           text-color="white"
-          :bg-color="message.senderId == userStore.user?.id ? 'amber-7' : 'blue-grey-7'"
+          :bg-color="message.senderId == userStore.user?.id ? 'teal-6' : 'blue-grey-7'"
         ></q-chat-message>
       </div>
       <q-page-scroller reverse position="bottom-right" :scroll-offset="20">

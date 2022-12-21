@@ -29,17 +29,16 @@ export const useChatStore = defineStore('chat', () => {
       const { data } = await api.get<ChatResponse[]>('chats');
 
       data.forEach(chat => {
-        (chat as Chat).previewMessage = setUpPreviewMessage(chat);
+        (chat as Chat | null).previewMessage = setUpPreviewMessage(chat);
         chats.value.push((chat as Chat));
       })
     } catch (error) {
       console.log('getChats', error);
-      
       notify.error()
     }
   }
 
-  async function getMessages(chatId: number, limit = null, offset = null) {
+  async function getMessages(chatId: number, limit: number | null = null, offset: number | null = null) {
     try {
       const { data } = await api.get<Message[]>(`chats/${chatId}/messages`, {
         params: {
@@ -71,18 +70,20 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function setUpPreviewMessage(chat: ChatResponse): PreviewMessage {
-    const lastMessage = chat.messages[chat.messages.length - 1];
-    return {
-      content: lastMessage.content,
-      createdAt: formatCreationDate(lastMessage.createdAt),
-      isRead: lastMessage.isRead,
-    };
+  function setUpPreviewMessage(chat: ChatResponse): PreviewMessage | null {
+    if (chat.messages.length > 0) {
+      const lastMessage = chat.messages[chat.messages.length - 1];
+      return {
+        content: lastMessage.content,
+        createdAt: formatCreationDate(lastMessage.createdAt),
+        isRead: lastMessage.isRead,
+      };
+    }
+    return null;
   }
 
   function formatCreationDate(createdAt: string): string {
-    createdAt;
-    return '12:22';
+    return createdAt;
   }
 
   function addMessage(message: Message, chatId: number) {

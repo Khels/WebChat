@@ -22,12 +22,12 @@
 
           <q-btn round flat>
             <q-avatar>
-              <img :src="currentConversation.avatar">
+              <img :src="chatStore.currentChat?.imageUrl">
             </q-avatar>
           </q-btn>
 
           <span class="q-subtitle-1 q-pl-md">
-            {{ currentConversation.person }}
+            {{ chatStore.currentChat?.name ? chatStore.currentChat?.name : 'khelskelly' }}
           </span>
 
           <q-space/>
@@ -95,6 +95,7 @@ import MessageList from 'src/components/MessageList.vue';
 import { Message } from 'src/models/chat';
 import { MessageType, WSMessageType } from 'src/services/constants';
 import { useChatStore } from 'src/stores/chat-store';
+import { camelCaseKeys } from 'src/utils/case-converters';
 import { computed, onBeforeMount, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -174,7 +175,10 @@ onBeforeMount(async () => {
 
   if (route.query.id) {
     chatStore.setCurrentChat(route.query.id);
-    await chatStore.getMessages(chatStore.currentChat?.id);
+    if (chatStore.currentChat && chatStore.currentChat.messages.length <= 1) {
+      chatStore.currentChat.messages = [];
+      await chatStore.getMessages(chatStore.currentChat?.id);
+    }
   }
 })
 
@@ -215,7 +219,7 @@ ws.onopen = (e) => {
 }
 
 ws.onmessage = (e) => {
-  const data: WSMessageReceive = JSON.parse(e.data);
+  const data: WSMessageReceive = camelCaseKeys(JSON.parse(JSON.parse(e.data)));
   console.log('onmessage data: ', data);
 
   if (data.error) {
@@ -237,11 +241,11 @@ ws.onclose = (e) => {
 // }
 
 function sendMessage() {
-  if (message.value) {
+  if (message.value && chatStore.currentChat) {
     send({
       type: WSMessageType.MESSAGE,
       body: {
-        chat_id: 1,
+        chat_id: chatStore.currentChat.id,
         type: MessageType.TEXT,
         content: message.value
       }
@@ -271,7 +275,7 @@ function toggleChatMenu () {
     position: fixed
     top: 0
     width: 100%
-    background-color: #009688
+    background-color: $teal-6
   &__layout
     margin: 0 auto
     z-index: 4000

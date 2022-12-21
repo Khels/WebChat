@@ -62,8 +62,7 @@
 
         <q-item-section>
           <q-item-label lines="1">
-            khelskelly
-            <!-- {{ conversation.person }} -->
+            {{ chat.name ? chat.name : 'khelskelly' }}
           </q-item-label>
           <q-item-label class="conversation__summary" caption>
             <q-icon name="check" v-if="chat.previewMessage?.isRead" />
@@ -74,7 +73,7 @@
 
         <q-item-section side>
           <q-item-label caption>
-            {{ chat.previewMessage?.createdAt }}
+            {{ chat.previewMessage?.createdAt.slice(11, 16) }}
           </q-item-label>
           <q-icon name="keyboard_arrow_down" />
         </q-item-section>
