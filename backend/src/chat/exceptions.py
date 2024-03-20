@@ -2,12 +2,12 @@ from fastapi import HTTPException, status
 
 
 class ChatCreationHTTPException(HTTPException):
-    def __init__(self, detail: str) -> None:
+    def __init__(self: "ChatCreationHTTPException", detail: str) -> None:
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=detail
+            detail=detail,
         )
 
 
-class Unsubscribed(Exception):
+class UnsubscribedError(Exception):
     pass

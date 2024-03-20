@@ -53,10 +53,10 @@ class ChatCreate(ChatBase):
     image_url: str | None
 
     @root_validator
-    def check_name(cls, values: dict):
+    def check_name(cls, values: dict) -> dict:  # noqa: ANN101, N805
         name, chat_type = values.get("name"), values.get("type")
         if chat_type == ChatType.GROUP:
-            assert name, "name should be specified for group chats"
+            assert name, "name should be specified for group chats"  # noqa: S101
         return values
 
 
@@ -97,9 +97,10 @@ class WSAuthMessage(WSMessageBase):
     body: WSAuthBody
 
     @validator("type")
-    def check_message_type(cls, value):
-        assert value == WSMessageType.AUTHENTICATION, \
-            "message type should be set to Authentication"
+    def check_message_type(cls, value: int) -> int:  # noqa: ANN101, N805
+        assert (  # noqa: S101
+            value == WSMessageType.AUTHENTICATION
+        ), "message type should be set to Authentication"
         return value
 
 

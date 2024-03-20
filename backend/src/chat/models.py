@@ -1,5 +1,6 @@
 from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
+
 from src.database import Base
 from src.models import CreatedAtMixin, IdMixin
 
@@ -17,12 +18,14 @@ class Chat(IdMixin, CreatedAtMixin, Base):
     messages = relationship("Message", back_populates="chat")
     participants = relationship("ChatParticipant", back_populates="chat")
 
-    def add_participants(self, participants: list[ParticipantCreate]):
+    def add_participants(self: "Chat", participants: list[ParticipantCreate]) -> None:
         for participant in participants:
-            self.participants.append(ChatParticipant(
-                participant_id=participant.id,
-                is_admin=participant.is_admin
-            ))
+            self.participants.append(
+                ChatParticipant(
+                    participant_id=participant.id,
+                    is_admin=participant.is_admin,
+                ),
+            )
 
 
 class ChatParticipant(Base):
@@ -31,12 +34,12 @@ class ChatParticipant(Base):
     chat_id = Column(
         Integer,
         ForeignKey("chat.id", ondelete="CASCADE"),
-        primary_key=True
+        primary_key=True,
     )
     participant_id = Column(
         Integer,
         ForeignKey("user.id", ondelete="CASCADE"),
-        primary_key=True
+        primary_key=True,
     )
     is_admin = Column(Boolean, default=False, nullable=False)
 

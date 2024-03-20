@@ -7,11 +7,10 @@ engine = create_async_engine(DATABASE_URL, future=True, echo=DEBUG)
 
 Base = declarative_base()
 
-async_session = sessionmaker(
-    bind=engine, class_=AsyncSession, expire_on_commit=False)
+async_session = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
 # dependency
-async def get_db_session() -> AsyncSession:
+async def get_db_session() -> AsyncSession:  # TODO: fix typing
     async with async_session() as session:
         yield session

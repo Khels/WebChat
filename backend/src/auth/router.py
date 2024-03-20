@@ -1,6 +1,9 @@
+from collections.abc import Sequence
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
+
 from src.database import AsyncSession, get_db_session
 from src.schemas import ClientErrorResponse
 
@@ -9,11 +12,17 @@ from .enums import TokenType
 from .models import Token, User
 from .schemas import TokenResponse, UserCreate, UserRead
 from .service import oauth2_scheme
-from .utils import (authenticate_user, create_access_token,
-                    create_refresh_token, delete_user_tokens,
-                    get_password_hash, get_token, get_user)
+from .utils import (
+    authenticate_user,
+    create_access_token,
+    create_refresh_token,
+    delete_user_tokens,
+    get_password_hash,
+    get_token,
+    get_user,
+)
 
-router = APIRouter(prefix="/api/v1", tags=['auth'])
+router = APIRouter(prefix="/api/v1", tags=["auth"])
 
 
 @router.post(
@@ -29,12 +38,12 @@ router = APIRouter(prefix="/api/v1", tags=['auth'])
             "description": "Username is already taken",
             "model": ClientErrorResponse,
         },
-    }
+    },
 )
 async def register(
     user: UserCreate,
-    session: AsyncSession = Depends(get_db_session)
-):
+    session: AsyncSession = Depends(get_db_session),
+) -> User:
     # check if user already exist
     try:
         await get_user(session, user.username)
@@ -43,14 +52,14 @@ async def register(
     else:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="This username is already taken"
+            detail="This username is already taken",
         )
 
     # compare passwords
     if user.password != user.password_confirm:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Passwords do not match'
+            detail="Passwords do not match",
         )
 
     # hash the password
@@ -77,15 +86,14 @@ async def register(
         400: {
             "description": "Incorrect username or password",
             "model": ClientErrorResponse,
-        }
-    }
+        },
+    },
 )
 async def token(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    session: AsyncSession = Depends(get_db_session)
-):
-    user = await authenticate_user(
-        form_data.username, form_data.password, session)
+    session: AsyncSession = Depends(get_db_session),
+) -> dict[str, str]:
+    user = await authenticate_user(form_data.username, form_data.password, session)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -97,28 +105,37 @@ async def token(
     await delete_user_tokens(session=session, user=user)
 
     access_token = await create_access_token(
-        session=session, user=user, scopes=form_data.scopes)
+        session=session,
+        user=user,
+        scopes=form_data.scopes,
+    )
     refresh_token = await create_refresh_token(
-        session=session, user=user, scopes=form_data.scopes)
+        session=session,
+        user=user,
+        scopes=form_data.scopes,
+    )
 
     return {
         "access_token": access_token.token,
-        "refresh_token": refresh_token.token
+        "refresh_token": refresh_token.token,
     }
 
 
 @router.get("/tokens")
-async def get_tokens(session: AsyncSession = Depends(get_db_session)):
-    result = await session.execute(select(Token).where(
-        Token.type.in_([TokenType.ACCESS])))
+async def get_tokens(session: AsyncSession = Depends(get_db_session)) -> dict[str, int]:
+    result = await session.execute(
+        select(Token).where(Token.type.in_([TokenType.ACCESS])),
+    )
     access_tokens = len(list(result.scalars()))
-    result = await session.execute(select(Token).where(
-        Token.type.in_([TokenType.REFRESH])
-    ))
+    result = await session.execute(
+        select(Token).where(
+            Token.type.in_([TokenType.REFRESH]),
+        ),
+    )
     refresh_tokens = len(list(result.scalars()))
     return {
         "access_tokens": access_tokens,
-        "refresh_tokens": refresh_tokens
+        "refresh_tokens": refresh_tokens,
     }
 
 
@@ -129,14 +146,18 @@ async def get_tokens(session: AsyncSession = Depends(get_db_session)):
         401: {
             "description": "Refresh token either expired or doesn't exist",
             "model": ClientErrorResponse,
-        }
-    })
+        },
+    },
+)
 async def refresh_token(
     token: str = Depends(oauth2_scheme),
-    session: AsyncSession = Depends(get_db_session)
-):
+    session: AsyncSession = Depends(get_db_session),
+) -> dict[str, str]:
     refresh_token = await get_token(
-        token=token, token_type=TokenType.REFRESH, session=session)
+        token=token,
+        token_type=TokenType.REFRESH,
+        session=session,
+    )
 
     user = refresh_token.user
     expires = refresh_token.expires
@@ -146,14 +167,21 @@ async def refresh_token(
     await delete_user_tokens(session=session, user=user)
 
     new_access_token = await create_access_token(
-        session=session, user=user, scopes=scopes)
+        session=session,
+        user=user,
+        scopes=scopes,
+    )
     # create a new refresh token with the same expiration date
     new_refresh_token = await create_refresh_token(
-        session=session, user=user, expires=expires, scopes=scopes)
+        session=session,
+        user=user,
+        expires=expires,
+        scopes=scopes,
+    )
 
     return {
         "access_token": new_access_token.token,
-        "refresh_token": new_refresh_token.token
+        "refresh_token": new_refresh_token.token,
     }
 
 
@@ -163,26 +191,26 @@ async def refresh_token(
         401: {
             "description": "Access token either expired or doesn't exist",
             "model": ClientErrorResponse,
-        }
-    }
+        },
+    },
 )
 async def revoke_token(
     current_user: User = Depends(get_current_active_user),
-    session: AsyncSession = Depends(get_db_session)
-):
+    session: AsyncSession = Depends(get_db_session),
+) -> Response:
     await delete_user_tokens(session=session, user=current_user)
     return Response()
 
 
 @router.get("/users/me", response_model=UserRead)
-async def me(current_user: User = Depends(get_current_active_user)):
+async def me(current_user: User = Depends(get_current_active_user)) -> User:
     return current_user
 
 
 @router.get("/users", response_model=list[UserRead])
 async def users(
-    session: AsyncSession = Depends(get_db_session)
-):
+    session: AsyncSession = Depends(get_db_session),
+) -> Sequence[User]:
     result = await session.execute(select(User))
     return result.scalars().all()
 
@@ -190,8 +218,8 @@ async def users(
 @router.get("/users/{user_id}", response_model=UserRead)
 async def user(
     user_id: int,
-    session: AsyncSession = Depends(get_db_session)
-):
+    session: AsyncSession = Depends(get_db_session),
+) -> User:
     user = await session.get(User, user_id)
 
     if user is None:

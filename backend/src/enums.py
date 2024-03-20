@@ -14,7 +14,12 @@ class LabeledEnum(enum.IntEnum):
     >>> MyEnum.OPTION.label
     first option
     """
-    def __new__(cls, value: int, label: str | None = None):
+
+    def __new__(
+        cls: "LabeledEnum",
+        value: int,
+        label: str | None = None,
+    ) -> "LabeledEnum":
         obj = int.__new__(cls, value)
         obj._value_ = value
 

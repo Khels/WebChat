@@ -1,12 +1,13 @@
 import asyncio
 from logging.config import fileConfig
 
-import src.auth.models  # noqa: F401
-import src.chat.models  # noqa: F401
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine
+
+import src.auth.models
+import src.chat.models  # noqa: F401
 from src.config import DATABASE_URL
 from src.database import Base
 
@@ -21,14 +22,8 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 
@@ -76,7 +71,7 @@ async def run_migrations_online() -> None:
             prefix="sqlalchemy.",
             poolclass=pool.NullPool,
             future=True,
-        )
+        ),
     )
 
     async with connectable.connect() as connection:
