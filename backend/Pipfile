@@ -4,20 +4,20 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-toml = "*"
-fastapi = "*"
-sqlalchemy = "*"
-asyncpg = "*"
-alembic = "*"
-hypercorn = "*"
-redis = {extras = ["hiredis"], version = "*"}
-asyncio-redis = "*"
-python-multipart = "*"
-passlib = {extras = ["bcrypt"], version = "*"}
+toml = "==0.10.2"
+fastapi = "==0.110.0"
+sqlalchemy = "==2.0.28"
+alembic = "==1.13.1"
+asyncpg = "==0.29.0"
+hypercorn = "==0.16.0"
+redis = {extras = ["hiredis"], version = "==5.0.3"}
+asyncio-redis = "==0.16.0"
+python-multipart = "==0.0.9"
+passlib = {extras = ["bcrypt"], version = "==1.7.4"}
 
 [dev-packages]
-flake8 = "*"
+ruff = "==0.3.3"
 
 [requires]
-python_version = "3.10"
-python_full_version = "3.10.6"
+python_version = "3.11"
+python_full_version = "3.11.3"
