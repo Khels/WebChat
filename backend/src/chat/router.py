@@ -1,5 +1,4 @@
 import json
-from collections.abc import Sequence
 from datetime import UTC, datetime
 
 from anyio import create_task_group
@@ -105,10 +104,10 @@ async def message_sender(websocket: WebSocket) -> None:
 
 
 @router.websocket("/chat", name="chat")
-async def chat(
+async def chat(  # noqa: ANN201
     websocket: WebSocket,
     session: AsyncSession = Depends(get_db_session),
-) -> None:
+):
     await websocket.accept()
 
     user = None
@@ -148,11 +147,11 @@ async def chat(
 
 
 @router.post("/chats")
-async def create_chat(
+async def create_chat(  # noqa: ANN201
     chat: ChatCreate,
     user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session),
-) -> Chat:
+):
     # make sure chat creator is a participant as well as the admin
     chat_creator_included = False
     for participant in chat.participants:
@@ -215,10 +214,10 @@ async def create_chat(
 
 
 @router.get("/chats", response_model=list[ChatRead])
-async def get_chats(
+async def get_chats(  # noqa: ANN201
     user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session),
-) -> Sequence[Chat]:
+):
     subquery = (
         select(Message.id.label("last_message_id"))
         .order_by(
@@ -250,11 +249,11 @@ async def get_chats(
 
 
 @router.delete("/chats/{chat_id}")
-async def delete_chat(
+async def delete_chat(  # noqa: ANN201
     chat_id: int,
     user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session),
-) -> Response:
+):
     # TODO: check user permissions
     query = delete(Chat).where(Chat.id == chat_id)
     await session.execute(query)
@@ -264,13 +263,13 @@ async def delete_chat(
 
 
 @router.get("/chats/{chat_id}/messages", response_model=list[MessageRead])
-async def get_messages(
+async def get_messages(  # noqa: ANN201
     chat_id: int,
     limit: int | None = None,
     offset: int | None = None,
     user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session),
-) -> Sequence[Message]:
+):
     query = (
         select(Chat)
         .join(Chat.participants)

@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
@@ -40,10 +38,10 @@ router = APIRouter(prefix="/api/v1", tags=["auth"])
         },
     },
 )
-async def register(
+async def register(  # noqa: ANN201
     user: UserCreate,
     session: AsyncSession = Depends(get_db_session),
-) -> User:
+):
     # check if user already exist
     try:
         await get_user(session, user.username)
@@ -89,10 +87,10 @@ async def register(
         },
     },
 )
-async def token(
+async def token(  # noqa: ANN201
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_db_session),
-) -> dict[str, str]:
+):
     user = await authenticate_user(form_data.username, form_data.password, session)
     if not user:
         raise HTTPException(
@@ -122,7 +120,7 @@ async def token(
 
 
 @router.get("/tokens")
-async def get_tokens(session: AsyncSession = Depends(get_db_session)) -> dict[str, int]:
+async def get_tokens(session: AsyncSession = Depends(get_db_session)):  # noqa: ANN201
     result = await session.execute(
         select(Token).where(Token.type.in_([TokenType.ACCESS])),
     )
@@ -149,10 +147,10 @@ async def get_tokens(session: AsyncSession = Depends(get_db_session)) -> dict[st
         },
     },
 )
-async def refresh_token(
+async def refresh_token(  # noqa: ANN201
     token: str = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_db_session),
-) -> dict[str, str]:
+):
     refresh_token = await get_token(
         token=token,
         token_type=TokenType.REFRESH,
@@ -194,32 +192,32 @@ async def refresh_token(
         },
     },
 )
-async def revoke_token(
+async def revoke_token(  # noqa: ANN201
     current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session),
-) -> Response:
+):
     await delete_user_tokens(session=session, user=current_user)
     return Response()
 
 
 @router.get("/users/me", response_model=UserRead)
-async def me(current_user: User = Depends(get_current_active_user)) -> User:
+async def me(current_user: User = Depends(get_current_active_user)):  # noqa: ANN201
     return current_user
 
 
 @router.get("/users", response_model=list[UserRead])
-async def users(
+async def users(  # noqa: ANN201
     session: AsyncSession = Depends(get_db_session),
-) -> Sequence[User]:
+):
     result = await session.execute(select(User))
     return result.scalars().all()
 
 
 @router.get("/users/{user_id}", response_model=UserRead)
-async def user(
+async def user(  # noqa: ANN201
     user_id: int,
     session: AsyncSession = Depends(get_db_session),
-) -> User:
+):
     user = await session.get(User, user_id)
 
     if user is None:

@@ -1,54 +1,56 @@
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
     Enum,
     ForeignKey,
-    Integer,
     String,
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
 from src.models import IdMixin
 
 from .enums import TokenType
 
+if TYPE_CHECKING:
+    from src.chat.models import ChatParticipant
+
 
 class User(IdMixin, Base):
     __tablename__ = "user"
 
-    username = Column(String, index=True, nullable=False, unique=True)
-    first_name = Column(String, default="", nullable=False)
-    last_name = Column(String, default="", nullable=False)
-    password = Column(String, nullable=False)
-    last_online = Column(DateTime, default=None)
-    is_active = Column(Boolean, default=False, nullable=False)
-    is_admin = Column(Boolean, default=False, nullable=False)
+    username: Mapped[str] = mapped_column(index=True, unique=True)
+    first_name: Mapped[str] = mapped_column(default="")
+    last_name: Mapped[str] = mapped_column(default="")
+    password: Mapped[str] = mapped_column(String(256))
+    last_online: Mapped[datetime | None] = mapped_column(default=None)
+    is_active: Mapped[bool] = mapped_column(default=False)
+    is_admin: Mapped[bool] = mapped_column(default=False)
 
-    tokens = relationship("Token", back_populates="user")
-    chats = relationship("ChatParticipant", back_populates="participant")
+    tokens: Mapped[list["Token"]] = relationship("Token", back_populates="user")
+    chats: Mapped[list["ChatParticipant"]] = relationship(
+        "ChatParticipant",
+        back_populates="participant",
+    )
 
 
 class Token(IdMixin, Base):
     __tablename__ = "token"
     __table_args__ = (UniqueConstraint("type", "user_id", name="unique_token"),)
 
-    token = Column(String(length=128), index=True, nullable=False)
-    type = Column(Enum(TokenType, name="token_type"), nullable=False)
-    user_id = Column(
-        Integer,
+    token: Mapped[str] = mapped_column(String(128), index=True)
+    type: Mapped[TokenType] = mapped_column(Enum(name="token_type"))
+    user_id: Mapped[int] = mapped_column(
         ForeignKey("user.id", ondelete="CASCADE"),
         nullable=False,
     )
-    expires = Column(DateTime, nullable=False)
-    scopes = Column(Text, nullable=False)  # space-separated scopes
+    expires: Mapped[datetime]
+    scopes: Mapped[str] = mapped_column(Text)  # space-separated scopes
 
-    user = relationship("User", back_populates="tokens")
+    user: Mapped["User"] = relationship("User", back_populates="tokens")
 
     def expired(self: "Token") -> bool:
         return self.expires <= datetime.now(UTC)

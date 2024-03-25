@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Extra, Field, root_validator, validator
+from pydantic import BaseModel, Field, model_validator, validator
 
 from .enums import ChatType, MessageType, WSMessageType, WSNotificationType
 
@@ -52,12 +52,11 @@ class ChatCreate(ChatBase):
     participants: list[ParticipantCreate]
     image_url: str | None
 
-    @root_validator
-    def check_name(cls, values: dict) -> dict:  # noqa: ANN101, N805
-        name, chat_type = values.get("name"), values.get("type")
-        if chat_type == ChatType.GROUP:
-            assert name, "name should be specified for group chats"  # noqa: S101
-        return values
+    @model_validator(mode="after")
+    def check_name(self) -> "ChatCreate":  # noqa: ANN101
+        if self.type == ChatType.GROUP:
+            assert self.name, "name should be specified for group chats"  # noqa: S101
+        return self
 
 
 class ChatRead(ChatBase):
@@ -81,12 +80,12 @@ class WSNotificationBody(BaseModel):
     user_id: int
 
     class Config:
-        extra = Extra.forbid
+        extra = "forbid"
 
 
 class WSMessageBody(MessageCreate):
     class Config:
-        extra = Extra.forbid
+        extra = "forbid"
 
 
 class WSMessageBase(BaseModel):

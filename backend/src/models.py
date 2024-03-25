@@ -1,13 +1,14 @@
-from sqlalchemy import Column, DateTime, Integer
-from sqlalchemy.orm import declarative_mixin
+from datetime import datetime
+
+from sqlalchemy.orm import Mapped, declarative_mixin, mapped_column
 from sqlalchemy.sql import func
 
 
 @declarative_mixin
 class IdMixin:
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
 
 
 @declarative_mixin
 class CreatedAtMixin:
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
