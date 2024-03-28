@@ -101,5 +101,6 @@ export const useChatStore = defineStore('chat', () => {
     getChats,
     getMessages,
     setCurrentChat,
+    addMessage
   }
 });

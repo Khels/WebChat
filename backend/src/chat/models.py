@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, ForeignKey, String, Text
+from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
@@ -17,7 +18,7 @@ class Chat(IdMixin, CreatedAtMixin, Base):
     __tablename__ = "chat"
 
     name: Mapped[str] = mapped_column(String(128))
-    type: Mapped[ChatType] = mapped_column(Enum(name="chat_type"))
+    type: Mapped[ChatType] = mapped_column(ENUM(ChatType, name="chat_type"))
     image_url: Mapped[str]
 
     messages: Mapped[list["Message"]] = relationship("Message", back_populates="chat")
@@ -36,7 +37,7 @@ class Chat(IdMixin, CreatedAtMixin, Base):
             )
 
 
-class ChatParticipant(Base):
+class ChatParticipant(CreatedAtMixin, Base):
     __tablename__ = "chat_participant"
 
     chat_id: Mapped[int] = mapped_column(
@@ -59,7 +60,7 @@ class Message(IdMixin, CreatedAtMixin, Base):
     author_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     sender_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     chat_id: Mapped[int] = mapped_column(ForeignKey("chat.id"))
-    type: Mapped[MessageType] = mapped_column(Enum(name="message_type"))
+    type: Mapped[MessageType] = mapped_column(ENUM(MessageType, name="message_type"))
     content: Mapped[str] = mapped_column(Text)
     is_read: Mapped[bool] = mapped_column(default=False)
     is_edited: Mapped[bool] = mapped_column(default=False)

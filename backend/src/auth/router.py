@@ -65,7 +65,7 @@ async def register(  # noqa: ANN201
     del user.password_confirm
 
     # non-schema fields
-    user_dict = user.dict()
+    user_dict = user.model_dump()
     user_dict["is_active"] = True
 
     new_user = User(**user_dict)

@@ -199,7 +199,7 @@ async def create_chat(  # noqa: ANN201
                     detail="There is already a dialogue created with this user.",
                 )
 
-    chat_data = chat.dict()
+    chat_data = chat.model_dump()
     chat_data.pop("participants")
 
     new_chat = Chat(**chat_data)

@@ -1,26 +1,26 @@
-import enum
+from enum import StrEnum
 
 
-class ChatType(enum.Enum):
-    SAVED_MESSAGES = 1
-    DIALOGUE = 2
-    GROUP = 3
+class ChatType(StrEnum):
+    SAVED_MESSAGES = "saved_messages"
+    DIALOGUE = "dialogue"
+    GROUP = "group"
 
 
-class MessageType(enum.Enum):
-    TEXT = 1
-    VOICE = 2
-    FILE = 3
+class MessageType(StrEnum):
+    TEXT = "text"
+    VOICE = "voice"
+    FILE = "file"
 
 
-class WSMessageType(enum.Enum):
-    AUTHENTICATION = 1
-    NOTIFICATION = 2
-    MESSAGE = 3
+class WSMessageType(StrEnum):
+    AUTHENTICATION = "authentication"
+    NOTIFICATION = "notification"
+    MESSAGE = "message"
 
 
-class WSNotificationType(enum.Enum):
-    USER_TYPING = 1
-    USER_STOPPED_TYPING = 2
-    USER_ONLINE = 3
-    USER_OFFLINE = 4
+class WSNotificationType(StrEnum):
+    USER_TYPING = "user_typing"
+    USER_STOPPED_TYPING = "user_stopped_typing"
+    USER_ONLINE = "user_online"
+    USER_OFFLINE = "user_offline"

@@ -18,7 +18,8 @@ class UserBase(BaseModel):
     last_name: str | None
 
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    username: str
     password: str
     password_confirm: str
 
