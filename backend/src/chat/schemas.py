@@ -15,7 +15,7 @@ class ParticipantRead(BaseModel):
     is_admin: bool
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # ## Message ###
@@ -38,7 +38,7 @@ class MessageRead(MessageBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
         use_enum_values = True
 
 
@@ -67,7 +67,7 @@ class ChatRead(ChatBase):
     messages: list[MessageRead]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # ## Websocket ###

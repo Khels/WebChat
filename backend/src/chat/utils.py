@@ -28,7 +28,7 @@ async def create_message(
     if not result.scalar():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    message_data = message.dict()
+    message_data = message.model_dump()
     message_data.update(
         {
             "author_id": user.id,
@@ -41,4 +41,4 @@ async def create_message(
     await session.commit()
     await session.refresh(new_message)
 
-    return MessageRead.from_orm(new_message)
+    return MessageRead.model_validate(new_message)

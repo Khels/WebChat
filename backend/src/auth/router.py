@@ -7,7 +7,7 @@ from src.schemas import ClientErrorResponse
 
 from .dependencies import get_current_active_user
 from .enums import TokenType
-from .models import Token, User
+from .models import User
 from .schemas import TokenResponse, UserCreate, UserRead
 from .service import oauth2_scheme
 from .utils import (
@@ -116,24 +116,6 @@ async def token(  # noqa: ANN201
     return {
         "access_token": access_token.token,
         "refresh_token": refresh_token.token,
-    }
-
-
-@router.get("/tokens")
-async def get_tokens(session: AsyncSession = Depends(get_db_session)):  # noqa: ANN201
-    result = await session.execute(
-        select(Token).where(Token.type.in_([TokenType.ACCESS])),
-    )
-    access_tokens = len(list(result.scalars()))
-    result = await session.execute(
-        select(Token).where(
-            Token.type.in_([TokenType.REFRESH]),
-        ),
-    )
-    refresh_tokens = len(list(result.scalars()))
-    return {
-        "access_tokens": access_tokens,
-        "refresh_tokens": refresh_tokens,
     }
 
 

@@ -1,17 +1,17 @@
 export const MessageType = {
-  TEXT: 1,
-  VOICE: 2,
-  FILE: 3,
+  TEXT: 'text',
+  VOICE: 'voice',
+  FILE: 'file',
 }
 
 export const WSMessageType = {
-  AUTHENTICATION: 1,
-  NOTIFICATION: 2,
-  MESSAGE: 3,
+  AUTHENTICATION: 'authentication',
+  NOTIFICATION: 'notification',
+  MESSAGE: 'message',
 }
 
 export const ChatType = {
-  SAVED_MESSAGES: 1,
-  DIALOGUE: 2,
-  GROUP: 3,
+  SAVED_MESSAGES: 'saved_messages',
+  DIALOGUE: 'dialogue',
+  GROUP: 'group',
 }
