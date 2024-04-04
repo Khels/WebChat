@@ -1,7 +1,7 @@
 <template>
   <q-page class="row justify-center q-pa-md" :class="classObject">
     <template v-if="chatStore.currentChat">
-      <div style="width: 100%; max-width: 400px">
+      <div class="message-container">
         <q-chat-message
           v-for="message in chatStore.currentChat?.messages"
           :key="message.content"
@@ -38,3 +38,9 @@ const classObject = computed(() => ({
   'items-center': chatStore.currentChat === null
 }))
 </script>
+
+<style>
+.message-container {
+  width: 100%;
+}
+</style>
