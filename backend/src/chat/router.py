@@ -198,6 +198,8 @@ async def create_chat(  # noqa: ANN201
                 raise ChatCreationHTTPException(
                     detail="There is already a dialogue created with this user.",
                 )
+        case ChatType.GROUP:
+            pass
 
     chat_data = chat.model_dump()
     chat_data.pop("participants")
@@ -254,7 +256,21 @@ async def delete_chat(  # noqa: ANN201
     user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session),
 ):
-    # TODO: check user permissions
+    query = select(
+        select(ChatParticipant)
+        .where(
+            ChatParticipant.chat_id == chat_id,
+            ChatParticipant.participant_id == user.id,
+            ChatParticipant.is_admin.is_(True),
+        )
+        .exists(),
+    )
+    if not await session.scalar(query):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You have no permission to delete this chat.",
+        )
+
     query = delete(Chat).where(Chat.id == chat_id)
     await session.execute(query)
     await session.commit()
@@ -281,8 +297,7 @@ async def get_messages(  # noqa: ANN201
             ChatParticipant.participant_id == user.id,
         )
     )
-    result = await session.execute(query)
-    chat = result.scalar()
+    chat = await session.scalar(query)
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
@@ -293,6 +308,4 @@ async def get_messages(  # noqa: ANN201
         query = query.limit(limit)
     if offset is not None:
         query = query.offset(offset)
-    result = await session.execute(query)
-
-    return result.scalars().all()
+    return await session.scalars(query)
