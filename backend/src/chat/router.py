@@ -256,23 +256,23 @@ async def delete_chat(  # noqa: ANN201
     user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session),
 ):
-    query = select(
-        select(ChatParticipant)
-        .where(
-            ChatParticipant.chat_id == chat_id,
-            ChatParticipant.participant_id == user.id,
-            ChatParticipant.is_admin.is_(True),
-        )
-        .exists(),
+    query = select(ChatParticipant).where(
+        ChatParticipant.chat_id == chat_id,
+        ChatParticipant.participant_id == user.id,
     )
-    if not await session.scalar(query):
+    chat_participant = await session.scalar(query)
+
+    if not chat_participant:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You have no permission to delete this chat.",
         )
 
-    query = delete(Chat).where(Chat.id == chat_id)
-    await session.execute(query)
+    if chat_participant.is_admin:
+        query = delete(Chat).where(Chat.id == chat_id)
+        await session.execute(query)
+    else:
+        await session.delete(chat_participant)
     await session.commit()
 
     return Response(status_code=status.HTTP_200_OK)
