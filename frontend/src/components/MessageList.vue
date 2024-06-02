@@ -4,7 +4,7 @@
       <div class="message-container">
         <q-chat-message
           v-for="message in chatStore.currentChat?.messages"
-          :key="message.content"
+          :key="message.id"
           :name="chatStore.currentChat?.type === ChatType.GROUP ? userStore.displayName : undefined"
           :avatar="chatStore.currentChat?.type === ChatType.GROUP ? 'https://cdn.quasar.dev/team/razvan_stoenescu.jpeg' : undefined"
           :text="[message.content]"

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 
+from src.chat.models import Chat, ChatParticipant, ChatType
 from src.database import AsyncSession, get_db_session
 from src.schemas import ClientErrorResponse
 
@@ -73,6 +74,21 @@ async def register(  # noqa: ANN201
     session.add(new_user)
     await session.commit()
     await session.refresh(new_user)
+
+    # Create SAVED_MESSAGES chat for a new user
+    saved_messages_chat = Chat(
+        name="",
+        type=ChatType.SAVED_MESSAGES,
+        image_url="",
+    )
+    session.add(saved_messages_chat)
+    saved_messages_chat.participants.append(
+        ChatParticipant(
+            participant_id=new_user.id,
+            is_admin=True,
+        ),
+    )
+    await session.commit()
 
     return new_user
 

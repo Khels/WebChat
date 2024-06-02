@@ -21,10 +21,16 @@ export interface Participant {
   isAdmin: boolean;
 }
 
+export enum ChatType {
+  SAVED_MESSAGES = 'saved_messages',
+  DIALOGUE = 'dialogue',
+  GROUP = 'group',
+}
+
 export interface ChatResponse {
   id: number;
   name?: string;
-  type: number;
+  type: ChatType;
   imageUrl?: string;
   participants: Participant[];
   messages: Message[];

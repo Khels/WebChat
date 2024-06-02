@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { api } from 'src/boot/axios';
 import { useNotifications } from 'src/composables/notifications';
 import { Chat, ChatResponse, Message, PreviewMessage } from 'src/models/chat';
+import { ChatType } from 'src/services/constants';
 import router from 'src/router/index';
 import { ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -30,6 +31,10 @@ export const useChatStore = defineStore('chat', () => {
 
       data.forEach(chat => {
         (chat as Chat | null).previewMessage = setUpPreviewMessage(chat);
+        if (chat.type === ChatType.SAVED_MESSAGES) {
+          chat.name = "Saved Messages"
+          chat.imageUrl = "/bookmark.svg"
+        }
         chats.value.push((chat as Chat));
       })
     } catch (error) {

@@ -13,7 +13,7 @@ from fastapi import (
 )
 from fastapi.websockets import WebSocketState
 from pydantic import ValidationError
-from sqlalchemy import and_, delete, select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import contains_eager, joinedload
 
 from src.auth.dependencies import get_current_active_user
@@ -220,25 +220,11 @@ async def get_chats(  # noqa: ANN201
     user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session),
 ):
-    subquery = (
-        select(Message.id.label("last_message_id"))
-        .order_by(
-            Message.created_at.desc(),
-        )
-        .limit(1)
-        .scalar_subquery()
-        .correlate(Chat)
-    )
-
     query = (
         select(Chat)
-        .outerjoin(
-            Message,
-            and_(Message.chat_id == Chat.id, Message.id == subquery),
-        )
         .options(
             joinedload(Chat.participants),
-            contains_eager(Chat.messages),
+            joinedload(Chat.messages),
         )
         .where(
             Chat.participants.any(ChatParticipant.participant_id == user.id),
@@ -246,7 +232,6 @@ async def get_chats(  # noqa: ANN201
     )
 
     result = await session.execute(query)
-
     return result.unique().scalars().all()
 
 

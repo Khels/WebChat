@@ -29,8 +29,10 @@ class MessageCreate(MessageBase):
     pass
 
 
-class MessageRead(MessageBase):
+class MessageRead(BaseModel):
     id: int
+    type: MessageType
+    content: str
     author_id: int
     sender_id: int
     is_read: bool
