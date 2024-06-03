@@ -59,7 +59,7 @@ class Message(IdMixin, CreatedAtMixin, Base):
 
     author_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     sender_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
-    chat_id: Mapped[int] = mapped_column(ForeignKey("chat.id"))
+    chat_id: Mapped[int] = mapped_column(ForeignKey("chat.id", ondelete="CASCADE"))
     type: Mapped[MessageType] = mapped_column(ENUM(MessageType, name="message_type"))
     content: Mapped[str] = mapped_column(Text)
     is_read: Mapped[bool] = mapped_column(default=False)

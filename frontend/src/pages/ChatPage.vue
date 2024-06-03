@@ -22,40 +22,21 @@
 
           <q-btn round flat>
             <q-avatar>
-              <img :src="chatStore.currentChat?.imageUrl">
+              <img src="/person.svg">
             </q-avatar>
           </q-btn>
 
           <span class="q-subtitle-1 q-pl-md">
-            {{ chatStore.currentChat?.name ? chatStore.currentChat?.name : 'khelskelly' }}
+            {{ chatStore.currentChat?.name ? chatStore.currentChat?.name : chatStore.currentChat ? chatStore.getDisplayName(chatStore.getDialogParticipant(chatStore.currentChat, userStore.getCurrentUser())) : undefined }}
           </span>
 
           <q-space/>
 
-          <q-btn round flat icon="search" />
-          <q-btn round flat>
-            <q-icon name="attachment" class="rotate-135" />
-          </q-btn>
           <q-btn round flat icon="more_vert">
             <q-menu auto-close :offset="[110, 0]">
               <q-list style="min-width: 150px">
                 <q-item clickable>
-                  <q-item-section>Информация о контакте</q-item-section>
-                </q-item>
-                <q-item clickable>
-                  <q-item-section>Заблокировать</q-item-section>
-                </q-item>
-                <q-item clickable>
-                  <q-item-section>Выбрать сообщения</q-item-section>
-                </q-item>
-                <q-item clickable>
-                  <q-item-section>Выключить уведомления</q-item-section>
-                </q-item>
-                <q-item clickable>
-                  <q-item-section>Clear messages</q-item-section>
-                </q-item>
-                <q-item clickable>
-                  <q-item-section>Erase messages</q-item-section>
+                  <q-item-section @click="chatStore.deleteCurrentChat()">Удалить чат</q-item-section>
                 </q-item>
               </q-list>
             </q-menu>
@@ -81,7 +62,6 @@
             @keydown.ctrl.enter.exact="sendMessage()"
           />
           <q-btn round flat icon="send" v-show="message" @click="sendMessage()" />
-          <q-btn round flat icon="mic" v-show="!message" />
         </q-toolbar>
       </q-footer>
     </q-layout>
@@ -95,6 +75,7 @@ import MessageList from 'src/components/MessageList.vue';
 import { Message } from 'src/models/chat';
 import { MessageType, WSMessageType } from 'src/services/constants';
 import { useChatStore } from 'src/stores/chat-store';
+import { useUserStore } from 'src/stores/user-store';
 import { camelCaseKeys } from 'src/utils/case-converters';
 import { computed, onBeforeMount, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -130,45 +111,11 @@ interface WSMessage extends WSMessageBase {
 
 type WSMessageReceive = WSMessage | WSErrorMessageReceive;
 
-const conversations = [
-  {
-    id: 1,
-    person: 'Razvan Stoenescu',
-    avatar: 'https://cdn.quasar.dev/team/razvan_stoenescu.jpeg',
-    caption: 'I\'m working on Quasar!',
-    time: '15:00',
-    sent: true
-  },
-  {
-    id: 2,
-    person: 'Dan Popescu',
-    avatar: 'https://cdn.quasar.dev/team/dan_popescu.jpg',
-    caption: 'I\'m working on Quasar!',
-    time: '16:00',
-    sent: true
-  },
-  {
-    id: 3,
-    person: 'Jeff Galbraith',
-    avatar: 'https://cdn.quasar.dev/team/jeff_galbraith.jpg',
-    caption: 'I\'m working on Quasar!',
-    time: '18:00',
-    sent: true
-  },
-  {
-    id: 4,
-    person: 'Allan Gaunt',
-    avatar: 'https://cdn.quasar.dev/team/allan_gaunt.png',
-    caption: 'I\'m working on Quasar!',
-    time: '17:00',
-    sent: true
-  }
-];
-
 const $q = useQuasar();
 const route = useRoute();
 const router = useRouter();
 const chatStore = useChatStore();
+const userStore = useUserStore();
 
 onBeforeMount(async () => {
   await chatStore.getChats();
@@ -201,9 +148,6 @@ const chatMenuOpen = ref(false);
 const message = ref('');
 const currentConversationIndex = ref(0);
 
-const currentConversation = computed(() => {
-  return conversations[ currentConversationIndex.value ];
-});
 const style = computed(() => ({
   height: $q.screen.height + 'px'
 }));
@@ -226,6 +170,15 @@ ws.onmessage = (e) => {
     console.log('error: ', data.error);
   } else {
     chatStore.currentChat?.messages.push(data.body);
+    for (let chat of chatStore.chats) {
+      if (chat.id === data.body.chatId) {
+        if (chat.previewMessage) {
+          chat.previewMessage.content = data.body.content;
+          chat.previewMessage.isRead = data.body.isRead;
+          chat.previewMessage.createdAt = data.body.createdAt;
+        }
+      }
+    }
   }
 }
 

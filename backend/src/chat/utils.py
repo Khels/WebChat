@@ -5,7 +5,7 @@ from src.auth.models import User
 from src.database import AsyncSession
 
 from .models import Chat, ChatParticipant, Message
-from .schemas import MessageCreate, MessageRead
+from .schemas import MessageCreate, WSMessageRead
 
 
 async def send_error(websocket: WebSocket, error: dict) -> None:
@@ -16,7 +16,7 @@ async def create_message(
     message: dict,
     user: User,
     session: AsyncSession,
-) -> MessageRead:
+) -> WSMessageRead:
     message = MessageCreate(**message)
 
     # make sure chat exists and user is a participant
@@ -41,4 +41,4 @@ async def create_message(
     await session.commit()
     await session.refresh(new_message)
 
-    return MessageRead.model_validate(new_message)
+    return WSMessageRead.model_validate(new_message)

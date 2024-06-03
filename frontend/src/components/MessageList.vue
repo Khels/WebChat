@@ -5,8 +5,8 @@
         <q-chat-message
           v-for="message in chatStore.currentChat?.messages"
           :key="message.id"
-          :name="chatStore.currentChat?.type === ChatType.GROUP ? userStore.displayName : undefined"
-          :avatar="chatStore.currentChat?.type === ChatType.GROUP ? 'https://cdn.quasar.dev/team/razvan_stoenescu.jpeg' : undefined"
+          :name="chatStore.currentChat?.type === ChatType.GROUP ? chatStore.getDisplayName(chatStore.getChatParticipant(chatStore.currentChat, message.senderId)) : undefined"
+          :avatar="chatStore.currentChat?.type === ChatType.GROUP ? '/person.svg' : undefined"
           :text="[message.content]"
           :stamp="message.createdAt.slice(11, 16)"
           :sent="(message.senderId == userStore.user?.id)"

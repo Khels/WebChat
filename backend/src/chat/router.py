@@ -223,7 +223,7 @@ async def get_chats(  # noqa: ANN201
     query = (
         select(Chat)
         .options(
-            joinedload(Chat.participants),
+            joinedload(Chat.participants).joinedload(ChatParticipant.participant),
             joinedload(Chat.messages),
         )
         .where(

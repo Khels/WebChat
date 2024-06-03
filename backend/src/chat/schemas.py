@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, model_validator, validator
 
+from src.auth.schemas import UserRead
+
 from .enums import ChatType, MessageType, WSMessageType, WSNotificationType
 
 
@@ -11,7 +13,7 @@ class ParticipantCreate(BaseModel):
 
 
 class ParticipantRead(BaseModel):
-    participant_id: int
+    participant: UserRead
     is_admin: bool
 
     class Config:
@@ -83,6 +85,10 @@ class WSNotificationBody(BaseModel):
 
     class Config:
         extra = "forbid"
+
+
+class WSMessageRead(MessageRead):
+    chat_id: int
 
 
 class WSMessageBody(MessageCreate):

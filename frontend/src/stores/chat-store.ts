@@ -6,6 +6,7 @@ import { ChatType } from 'src/services/constants';
 import router from 'src/router/index';
 import { ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { User } from 'src/models/auth';
 
 export const useChatStore = defineStore('chat', () => {
   const route = useRoute();
@@ -23,6 +24,30 @@ export const useChatStore = defineStore('chat', () => {
     }
   );
 
+  function getDisplayName(user: User | undefined) {
+    if (!user) return '';
+
+    let name = '';
+    if (user.firstName) {
+      name = user.firstName;
+      if (user.lastName) {
+        name = name + ' ' + user.lastName;
+      }
+    }
+
+    return name ? name : user.username
+  }
+
+  function getDialogParticipant(chat: Chat, user: User) {
+    if (chat.type === ChatType.DIALOGUE) {
+      for (const participant of chat.participants) {
+        if (participant.participant.id !== user.id) {
+          return participant.participant
+        }
+      }
+    }
+  }
+
   async function getChats() {
     chats.value = [];
 
@@ -37,6 +62,21 @@ export const useChatStore = defineStore('chat', () => {
         }
         chats.value.push((chat as Chat));
       })
+    } catch (error) {
+      console.log('getChats', error);
+      notify.error()
+    }
+  }
+
+  async function deleteCurrentChat() {
+    try {
+      await api.delete(`chats/${currentChat.value.id}`);
+
+      const index = chats.value.indexOf(currentChat.value, 0);
+      if (index > -1) {
+        chats.value.splice(index, 1);
+      }
+      currentChat.value = null
     } catch (error) {
       console.log('getChats', error);
       notify.error()
@@ -75,6 +115,14 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  function getChatParticipant(chat: Chat, userId: number) {
+    for (const participant of chat.participants) {
+      if (participant.participant.id === userId) {
+        return participant.participant
+      }
+    }
+  }
+
   function setUpPreviewMessage(chat: ChatResponse): PreviewMessage | null {
     if (chat.messages.length > 0) {
       const lastMessage = chat.messages[chat.messages.length - 1];
@@ -103,9 +151,13 @@ export const useChatStore = defineStore('chat', () => {
   return {
     currentChat,
     chats,
+    getDialogParticipant,
+    getDisplayName,
     getChats,
+    deleteCurrentChat,
     getMessages,
     setCurrentChat,
+    getChatParticipant,
     addMessage
   }
 });

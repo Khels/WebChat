@@ -9,18 +9,6 @@
           <q-item clickable>
             <q-item-section>Новая группа</q-item-section>
           </q-item>
-          <q-item clickable>
-            <q-item-section>Профиль</q-item-section>
-          </q-item>
-          <q-item clickable>
-            <q-item-section>Архив</q-item-section>
-          </q-item>
-          <q-item clickable>
-            <q-item-section>Избранное</q-item-section>
-          </q-item>
-          <q-item clickable>
-            <q-item-section>Настройки</q-item-section>
-          </q-item>
           <q-item clickable @click="userStore.signOut">
             <q-item-section>Выйти</q-item-section>
           </q-item>
@@ -56,13 +44,13 @@
       >
         <q-item-section avatar>
           <q-avatar>
-            <img :src="chat.imageUrl">
+            <img src="/person.svg">
           </q-avatar>
         </q-item-section>
 
         <q-item-section>
           <q-item-label lines="1">
-            {{ chat.name ? chat.name : 'khelskelly' }}
+            {{ chat.name ? chat.name : chatStore.getDisplayName(chatStore.getDialogParticipant(chat, userStore.getCurrentUser())) }}
           </q-item-label>
           <q-item-label class="conversation__summary" caption>
             <q-icon name="check" v-if="chat.previewMessage?.isRead" />
@@ -75,7 +63,6 @@
           <q-item-label caption>
             {{ chat.previewMessage?.createdAt.slice(11, 16) }}
           </q-item-label>
-          <q-icon name="keyboard_arrow_down" />
         </q-item-section>
       </q-item>
     </q-list>

@@ -211,6 +211,15 @@ async def users(  # noqa: ANN201
     return result.scalars().all()
 
 
+@router.get("/users/search", response_model=list[UserRead])
+async def search_users(
+    q: str,
+    session: AsyncSession = Depends(get_db_session),
+):
+    query = select(User).where(User.username.like(f"%{q}%"))
+    return await session.scalars(query)
+
+
 @router.get("/users/{user_id}", response_model=UserRead)
 async def user(  # noqa: ANN201
     user_id: int,

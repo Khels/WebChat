@@ -16,8 +16,18 @@ export interface PreviewMessage {
   isRead: boolean;
 }
 
+export interface User {
+  id: number;
+  username: string;
+  firstName: string;
+  lastName: string;
+  lastOnline?: Date;
+  isActive: boolean;
+  isAdmin: boolean;
+}
+
 export interface Participant {
-  participantId: string;
+  participant: User;
   isAdmin: boolean;
 }
 
