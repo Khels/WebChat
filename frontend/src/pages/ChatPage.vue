@@ -27,7 +27,7 @@
           </q-btn>
 
           <span class="q-subtitle-1 q-pl-md">
-            {{ chatStore.currentChat?.name ? chatStore.currentChat?.name : chatStore.currentChat ? chatStore.getDisplayName(chatStore.getDialogParticipant(chatStore.currentChat, userStore.getCurrentUser())) : undefined }}
+            {{ chatStore.currentChat?.name ? chatStore.currentChat?.name : chatStore.currentChat ? chatStore.getDisplayName(chatStore.getDialogParticipant(chatStore.currentChat, userStore.user)) : undefined }}
           </span>
 
           <q-space/>

@@ -26,11 +26,7 @@
   </q-toolbar>
 
   <q-toolbar class="bg-grey-2">
-    <q-input rounded outlined dense class="WAL__field full-width" bg-color="white" v-model="search" placeholder="Найти">
-      <template v-slot:prepend>
-        <q-icon name="search" />
-      </template>
-    </q-input>
+    <UserSearch />
   </q-toolbar>
 
   <q-scroll-area style="height: calc(100% - 100px)">
@@ -50,7 +46,7 @@
 
         <q-item-section>
           <q-item-label lines="1">
-            {{ chat.name ? chat.name : chatStore.getDisplayName(chatStore.getDialogParticipant(chat, userStore.getCurrentUser())) }}
+            {{ chat.name ? chat.name : chatStore.getDisplayName(chatStore.getDialogParticipant(chat, userStore.user)) }}
           </q-item-label>
           <q-item-label class="conversation__summary" caption>
             <q-icon name="check" v-if="chat.previewMessage?.isRead" />
@@ -73,6 +69,7 @@
 import { useChatStore } from 'src/stores/chat-store';
 import { useUserStore } from 'src/stores/user-store';
 import { ref } from 'vue';
+import UserSearch from 'src/components/UserSearch.vue';
 
 const emit = defineEmits(['toggle']);
 

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select
+from sqlalchemy import and_, select
 
 from src.chat.models import Chat, ChatParticipant, ChatType
 from src.database import AsyncSession, get_db_session
@@ -212,11 +212,14 @@ async def users(  # noqa: ANN201
 
 
 @router.get("/users/search", response_model=list[UserRead])
-async def search_users(
+async def search_users(  # noqa: ANN201
     q: str,
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session),
 ):
-    query = select(User).where(User.username.like(f"%{q}%"))
+    query = select(User).where(
+        and_(User.username.like(f"%{q}%"), User.id != current_user.id),
+    )
     return await session.scalars(query)
 
 

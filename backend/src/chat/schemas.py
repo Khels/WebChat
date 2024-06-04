@@ -74,6 +74,16 @@ class ChatRead(ChatBase):
         from_attributes = True
 
 
+class CreateChatResponse(ChatBase):
+    id: int
+    name: str | None
+    image_url: str | None
+    participants: list[ParticipantRead]
+
+    class Config:
+        from_attributes = True
+
+
 # ## Websocket ###
 class WSAuthBody(BaseModel):
     token: str = Field(default=..., min_length=64)

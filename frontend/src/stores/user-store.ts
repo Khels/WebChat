@@ -133,9 +133,20 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  async function searchUsers(q: string) {
+    try {
+      const { data } = await api.get(`users/search/?q=${q}`);
+
+      return data
+    } catch (error) {
+      notify.error();
+    }
+  }
+
   return {
     user,
     displayName,
+    searchUsers,
     getCurrentUser,
     signUp,
     signIn,

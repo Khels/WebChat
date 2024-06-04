@@ -13,7 +13,7 @@ from fastapi import (
 )
 from fastapi.websockets import WebSocketState
 from pydantic import ValidationError
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import contains_eager, joinedload
 
 from src.auth.dependencies import get_current_active_user
@@ -29,6 +29,7 @@ from .models import Chat, ChatParticipant, Message
 from .schemas import (
     ChatCreate,
     ChatRead,
+    CreateChatResponse,
     MessageRead,
     ParticipantCreate,
     WSAuthMessage,
@@ -146,7 +147,7 @@ async def chat(  # noqa: ANN201
         await websocket.close(code=e.code, reason=e.reason)
 
 
-@router.post("/chats")
+@router.post("/chats", response_model=CreateChatResponse)
 async def create_chat(  # noqa: ANN201
     chat: ChatCreate,
     user: User = Depends(get_current_active_user),
@@ -184,22 +185,30 @@ async def create_chat(  # noqa: ANN201
                 # in a dialogue, both users are admins
                 participant.is_admin = True
 
-            # TODO: fix the query
-            query = select(Chat).where(
-                Chat.type == ChatType.DIALOGUE,
-                Chat.participants.any(
-                    ChatParticipant.participant_id.in_(
-                        [p.id for p in chat.participants],
+            participant_ids = [p.id for p in chat.participants]
+            num_participants = len(participant_ids)
+
+            subquery = (
+                select(ChatParticipant.chat_id)
+                .join(Chat)
+                .filter(Chat.type == ChatType.DIALOGUE)
+                .group_by(ChatParticipant.chat_id)
+                .having(
+                    func.count(ChatParticipant.participant_id) == num_participants,
+                    func.array_agg(ChatParticipant.participant_id).op("@>")(
+                        participant_ids,
                     ),
-                ),
+                )
+                .scalar_subquery()
             )
+
+            query = select(Chat).where(Chat.id == subquery)
+
             result = await session.execute(query)
             if result.scalar():
                 raise ChatCreationHTTPException(
                     detail="There is already a dialogue created with this user.",
                 )
-        case ChatType.GROUP:
-            pass
 
     chat_data = chat.model_dump()
     chat_data.pop("participants")
@@ -212,7 +221,11 @@ async def create_chat(  # noqa: ANN201
     await session.commit()
     await session.refresh(new_chat)
 
-    return new_chat
+    return await session.scalar(
+        select(Chat)
+        .options(joinedload(Chat.participants).joinedload(ChatParticipant.participant))
+        .where(Chat.id == new_chat.id),
+    )
 
 
 @router.get("/chats", response_model=list[ChatRead])

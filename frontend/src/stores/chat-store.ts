@@ -68,6 +68,26 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  async function createChat(type: string, name: string, participants: Array) {
+    try {
+      const { data } = await api.post(
+        'chats/',
+        {
+          type,
+          name,
+          participants,
+          image_url: '',
+        }
+      );
+
+      chats.value.push(data)
+      console.log(data, chats.value)
+    } catch (error) {
+      console.log('createChat', error);
+      notify.error()
+    }
+  }
+
   async function deleteCurrentChat() {
     try {
       await api.delete(`chats/${currentChat.value.id}`);
@@ -154,6 +174,7 @@ export const useChatStore = defineStore('chat', () => {
     getDialogParticipant,
     getDisplayName,
     getChats,
+    createChat,
     deleteCurrentChat,
     getMessages,
     setCurrentChat,
